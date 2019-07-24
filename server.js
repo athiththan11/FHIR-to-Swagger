@@ -622,7 +622,7 @@ function buildPaths() {
 
     var get = {
 		tags: [keyword],
-		parameters: [],
+		parameters: buildSearchParameters(keyword),
 		responses: {
 			200: getSuccessResponse('Bundle'),
 			default: getDefaultResponse('OperationOutcome')
@@ -753,6 +753,34 @@ function buildPaths() {
 	};
     outputJson.paths[path]['get'] = {} = get;
     //#endregion
+}
+
+function buildSearchParameters(element) {
+
+	// TODO: build search query parameters for path
+	var searchParamJson = JSON.parse(fs.readFileSync('./schemas/search-parameters.json'));
+	var entries = JSONPath({ path: '$.entry.*', json: searchParamJson });
+
+	var quaryParams = [];
+
+	Object.keys(entries).forEach(k => {
+		
+		var entry = entries[k]['resource'];
+		if (entry['base'].includes(element) || entry['name'].startsWith('_')) {
+			quaryParams.push({
+				name: entry['name'],
+				in: 'query',
+				type: 'string',
+				description: entry['description']
+			});
+		}
+	});
+
+	return quaryParams;
+}
+
+function buildCommonSearchParameters() {
+
 }
 
 function getSuccessResponse(element) {
