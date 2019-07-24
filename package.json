@@ -1,0 +1,18 @@
+{
+	"name": "web-scrape",
+	"version": "1.0.0",
+	"description": "",
+	"main": "server.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"jsonpath-plus": "^0.20.1",
+		"yargs": "^13.3.0"
+	},
+	"bin": {
+		"fhir-to-swagger": "./bin/fhir-to-swagger"
+	}
+}

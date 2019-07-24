@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+
+console.log('Starting FHIR to Swagger');
+require('../server');
