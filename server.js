@@ -779,10 +779,6 @@ function buildSearchParameters(element) {
 	return quaryParams;
 }
 
-function buildCommonSearchParameters() {
-
-}
-
 function getSuccessResponse(element) {
     var success = {
         description: 'Success'
@@ -817,4 +813,5 @@ fs.writeFileSync(`${args.outputFolder}/${keyword.toLowerCase()}-output.json`, JS
         console.error(err);
     }
 });
+
 console.log('Finished Processing');
