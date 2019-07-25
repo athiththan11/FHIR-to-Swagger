@@ -12,11 +12,9 @@ var schemaFile = fs.readFileSync('./schemas/fhir.schema.json');
 var schemaJson = JSON.parse(schemaFile);
 var outputJson = {};
 
-// FIXME: get this as an arg
-// var keyword = "ExplanationOfBenefit";
+// resource keyword from argument
 var keyword = args.resource;
 
-// TODO: change the resource value to a command line arg
 // * extracts the resource model from schema
 var resourceNode = JSONPath({
 	path: `$.definitions.${keyword}`,
@@ -29,12 +27,9 @@ outputJson.definitions = {};
 
 outputJson.host = 'hapi.fhir.org';
 outputJson.basePath = `/${keyword.toLowerCase()}-api`;
-outputJson.info = { title: `${keyword}FHIRAPI`, version: '2.0' };
-
-// TODO: implement paths
+outputJson.info = { title: `${keyword}FHIRAPI`, version: '1.0' };
 outputJson.paths = {};
 
-// TODO: change the hard-coded key value (Coverage)
 // * assign the resource node to relevant key
 outputJson.definitions[keyword] = {} = resourceNode;
 
@@ -46,9 +41,6 @@ var tagArray = [];
 Object.keys(properties).forEach((key) => {
 
 	// console.debug(key);
-
-    // TODO: traverse each object and find $ref tag. append $ref object in definitions
-    // TODO: array element $ref 
 
     buildDefinition(keyword, key);
 
@@ -89,7 +81,7 @@ function buildDefinition(obj, key) {
     if (key.startsWith('_')) {
         delete outputJson.definitions[obj].properties[key];
         return;
-    }
+	}
 
     // retrieve a property object and check for $ref element
     var node = properties[key];
@@ -116,23 +108,16 @@ function buildDefinition(obj, key) {
     var tempElement = JSONPath({ path: `$.definitions.${elementTag}`, json: schemaJson })[0];
 
     // * delete description element if any $ref as sibling element
-    if(tempElement['$ref'])
-        delete tempElement['description'];
+    if(tempElement['$ref']) {
+		delete tempElement['description'];
+	}
+	
+	// * adding string type to xhtml element
+	if (elementTag === 'xhtml') {
+		tempElement.type = 'string';
+	}
 
     outputJson.definitions[elementTag] = {} = tempElement;
-}
-
-function buildOperationOutcomeAndBundle() {
-
-    var operationOutcome = 'OperationOutcome';
-    var operationElement = JSONPath({ path: `$.definitions.${operationOutcome}`, json: schemaJson })[0];
-    outputJson.definitions[operationOutcome] = {} = operationElement;
-    tagArray.push('OperationOutcome');
-
-    var bundle = 'Bundle';
-    var bundleElement = JSONPath({ path: `$.definitions.${bundle}`, json: schemaJson })[0];
-    outputJson.definitions[bundle] = {} = bundleElement;
-    tagArray.push('Bundle');
 }
 
 // * opertaion-outcome & bundle elements are hard-coded to eliminate complexity
@@ -241,7 +226,6 @@ function appendOperationOutcomeAndBundle() {
 		required: ['issue', 'resourceType']
     };
     outputJson.definitions['OperationOutcome'] = {} = operationOutcome;
-    // tagArray.push('OperationOutcome');
 
     var bundle = {
 		description: 'A container for a collection of resources.',
@@ -479,13 +463,11 @@ function appendOperationOutcomeAndBundle() {
 		required: ['resourceType']
 	};
     outputJson.definitions['Bundle'] = {} = bundle;
-    // tagArray.push('Bundle');
     
     var unsignedInt = {
 		pattern: '^[0]|([1-9][0-9]*)$',
 		type: 'number',
-		description:
-			'An integer with a value that is not negative (e.g. \u003e\u003d 0)'
+		description: 'An integer with a value that is not negative (e.g. \u003e\u003d 0)'
     };
     outputJson.definitions['unsignedInt'] = {} = unsignedInt;
 
@@ -578,8 +560,6 @@ function appendOperationOutcomeAndBundle() {
 
 function traverseElement() {
     tagArray.forEach((e) => {
-
-        // TODO: traverse through added definition objects to append $ref elements
         // console.debug('Traversing through : ' + e);
 
         var element = JSONPath({ path: jPath + e, json: schemaJson })[0];
@@ -595,7 +575,15 @@ function traverseElement() {
 
 function buildPaths() {
 
-    // TODO: build paths for swagger
+	//#region produces section
+	var produces = [
+		"application/json",
+		"application/xml",
+		"application/fhir+xml",
+		"application/fhir+json"
+	];
+	outputJson.produces = produces;
+	//#endregion
 
     //#region / path
     // TODO: specify search parameters
@@ -687,11 +675,24 @@ function buildPaths() {
     //#region /Resource/_history path
     // TODO: specify parameters
     path = `/${keyword}/_history`;
-    outputJson.paths[path] = {};
+	outputJson.paths[path] = {};
+	
+	var historyParameters = [
+		{
+			name: '_since',
+			in: 'query',
+			type: 'string',
+		},
+		{
+			name: '_count',
+			in: 'query',
+			type: 'string',
+		}
+	];
 
     var get = {
         tags: [keyword],
-        parameters: [],
+        parameters: historyParameters,
         responses: {
             200: getSuccessResponse('Bundle'),
             default: getDefaultResponse('OperationOutcome')
@@ -713,8 +714,8 @@ function buildPaths() {
                 in: 'path',
                 type: 'string',
                 required: true
-            }
-        ],
+			}	
+        ].concat(historyParameters),
 		responses: {
 			200: getSuccessResponse('Bundle'),
 			default: getDefaultResponse('OperationOutcome')
