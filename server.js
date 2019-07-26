@@ -12,6 +12,11 @@ var schemaFile = fs.readFileSync('./schemas/fhir.schema.json');
 var schemaJson = JSON.parse(schemaFile);
 var outputJson = {};
 
+if (!args.resource) {
+	console.warn('WARN :: No Resource defined.\nPlease use the following pattern to invoke the tool\n\nfhir-to-swagger <ResourceName> <OutputDirectory>\n');
+	return 0;
+}
+
 // resource keyword from argument
 var keyword = args.resource;
 
@@ -24,6 +29,11 @@ var resourceNode = JSONPath({
 	path: `${jPath}${keyword}`,
 	json: schemaJson
 })[0];
+
+if (!resourceNode) {
+	console.error('ERROR :: No Resource found for ' + keyword);
+	return 0;
+}
 
 // building output.json for the resource
 outputJson.swagger = '2.0';
@@ -44,13 +54,7 @@ var tagArray = [];
 
 // traverse through properties object using key value pairs
 Object.keys(properties).forEach((key) => {
-
-	// console.debug(key);
-
     buildDefinition(keyword, key);
-
-    // console.debug(JSON.stringify(outputJson))
-	// console.debug('======================================');
 });
 
 // buildOperationOutcomeAndBundle();
@@ -65,8 +69,6 @@ appendOperationOutcomeAndBundle();
 buildPaths();
 
 function buildDefinition(obj, key) {
-
-    // console.debug('Building Definition : ' + key);
 
     // * resourceType const element is not supported. remove that element & append type 
     if (key === 'resourceType') {
@@ -97,6 +99,7 @@ function buildDefinition(obj, key) {
 		var n = properties[key];
 		var ref = n['$ref'];
 
+		// delete complex reference if it is not predefined already (patch with string type if not exists)
 		if (ref && !['string', 'number', 'boolean'].concat(tagArray).includes(ref.substring(ref.lastIndexOf('/') + 1, ref.length))) {
 			outputJson.definitions[obj].properties[key].type = 'string';
 			delete outputJson.definitions[obj].properties[key]['$ref'];
@@ -754,7 +757,6 @@ function buildPaths() {
 
 function buildSearchParameters(element) {
 
-	// TODO: build search query parameters for path
 	var searchParamJson = JSON.parse(fs.readFileSync('./schemas/search-parameters.json'));
 	var entries = JSONPath({ path: '$.entry.*', json: searchParamJson });
 
