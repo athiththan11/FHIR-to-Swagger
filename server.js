@@ -15,9 +15,13 @@ var outputJson = {};
 // resource keyword from argument
 var keyword = args.resource;
 
+var opOutcomeKeyword = 'OperationOutcome';
+var bundleKeyword = 'Bundle';
+var jPath = '$.definitions.';
+
 // * extracts the resource model from schema
 var resourceNode = JSONPath({
-	path: `$.definitions.${keyword}`,
+	path: `${jPath}${keyword}`,
 	json: schemaJson
 })[0];
 
@@ -32,6 +36,7 @@ outputJson.paths = {};
 
 // * assign the resource node to relevant key
 outputJson.definitions[keyword] = {} = resourceNode;
+outputJson.info['description'] = resourceNode['description'];
 
 // extract properties section of the resource model
 var properties = JSONPath({ path: '$.properties', json: resourceNode })[0];
@@ -50,8 +55,6 @@ Object.keys(properties).forEach((key) => {
 
 // buildOperationOutcomeAndBundle();
 appendOperationOutcomeAndBundle();
-
-var jPath = '$.definitions.';
 
 // FIXME: change the implementation
 // traverse through elements and build definitions
@@ -72,7 +75,13 @@ function buildDefinition(obj, key) {
     }
 
     // CHANGED: delete extension elements
-    if (key.toLowerCase().endsWith('extension') || key.toLowerCase().endsWith('contained')) {
+    // if (key.toLowerCase().endsWith('extension') || key.toLowerCase().endsWith('contained')) {
+    //     delete properties[key];
+    //     return;
+	// }
+	
+	// not deleting extension element
+    if (key.toLowerCase().endsWith('contained')) {
         delete properties[key];
         return;
     }
@@ -81,6 +90,17 @@ function buildDefinition(obj, key) {
     if (key.startsWith('_')) {
         delete outputJson.definitions[obj].properties[key];
         return;
+	}
+
+	// checks for Extension object and check $ref in properties to eliminate complex reference
+	if (obj === 'Extension' && key.startsWith('value')) {
+		var n = properties[key];
+		var ref = n['$ref'];
+
+		if (ref && !['string', 'number', 'boolean'].concat(tagArray).includes(ref.substring(ref.lastIndexOf('/') + 1, ref.length))) {
+			outputJson.definitions[obj].properties[key].type = 'string';
+			delete outputJson.definitions[obj].properties[key]['$ref'];
+		}
 	}
 
     // retrieve a property object and check for $ref element
@@ -105,7 +125,7 @@ function buildDefinition(obj, key) {
     } else {
         return;
     }
-    var tempElement = JSONPath({ path: `$.definitions.${elementTag}`, json: schemaJson })[0];
+    var tempElement = JSONPath({ path: `${jPath}${elementTag}`, json: schemaJson })[0];
 
     // * delete description element if any $ref as sibling element
     if(tempElement['$ref']) {
@@ -601,21 +621,15 @@ function buildPaths() {
 				}
 			}
 		],
-		responses: {
-			200: getSuccessResponse(keyword),
-			default: getDefaultResponse('OperationOutcome')
-		}
+		responses: getResponse(keyword,opOutcomeKeyword,opOutcomeKeyword)
 	};
     outputJson.paths[path]['post'] = post;
 
     var get = {
 		tags: [keyword],
 		parameters: buildSearchParameters(keyword),
-		responses: {
-			200: getSuccessResponse('Bundle'),
-			default: getDefaultResponse('OperationOutcome')
-		}
-    };
+		responses: getResponse(bundleKeyword,opOutcomeKeyword,opOutcomeKeyword)
+	};
     outputJson.paths[path]['get'] = get;
     //#endregion 
 
@@ -636,11 +650,8 @@ function buildPaths() {
     var get = {
 		tags: [keyword],
 		parameters: [],
-		responses: {
-			200: getSuccessResponse(keyword),
-			default: getDefaultResponse('OperationOutcome')
-		}
-    };
+		responses: getResponse(keyword,opOutcomeKeyword,opOutcomeKeyword)
+	};
     outputJson.paths[path]['get'] = get;
 
     var put = {
@@ -654,21 +665,15 @@ function buildPaths() {
 				}
 			}
 		],
-		responses: {
-			200: getSuccessResponse(keyword),
-			default: getDefaultResponse('OperationOutcome')
-		}
-    };
+		responses: getResponse(keyword,opOutcomeKeyword,opOutcomeKeyword)
+	};
     outputJson.paths[path]['put'] = put;
 
     var del = {
 		tags: [keyword],
 		parameters: [],
-		responses: {
-			200: getSuccessResponse('OperationOutcome'),
-			default: getDefaultResponse('OperationOutcome')
-		}
-    };
+		responses: getResponse(opOutcomeKeyword,opOutcomeKeyword,opOutcomeKeyword)
+	};
     outputJson.paths[path]['delete'] = del;
     //#endregion
 
@@ -691,13 +696,10 @@ function buildPaths() {
 	];
 
     var get = {
-        tags: [keyword],
-        parameters: historyParameters,
-        responses: {
-            200: getSuccessResponse('Bundle'),
-            default: getDefaultResponse('OperationOutcome')
-        }
-    }
+		tags: [keyword],
+		parameters: historyParameters,
+		responses: getResponse(bundleKeyword,opOutcomeKeyword,opOutcomeKeyword)
+	};
     outputJson.paths[path]['get'] = {} = get;
     //#endregion
 
@@ -708,18 +710,15 @@ function buildPaths() {
 
     var get = {
 		tags: [keyword],
-        parameters: [
-            {
-                name: 'id',
-                in: 'path',
-                type: 'string',
-                required: true
-			}	
-        ].concat(historyParameters),
-		responses: {
-			200: getSuccessResponse('Bundle'),
-			default: getDefaultResponse('OperationOutcome')
-		}
+		parameters: [
+			{
+				name: 'id',
+				in: 'path',
+				type: 'string',
+				required: true
+			}
+		].concat(historyParameters),
+		responses: getResponse(bundleKeyword,opOutcomeKeyword,opOutcomeKeyword)
 	};
 
     // FIXME: implement get method
@@ -747,10 +746,7 @@ function buildPaths() {
 				required: true
 			}
 		],
-		responses: {
-			200: getSuccessResponse(keyword),
-			default: getDefaultResponse('OperationOutcome')
-		}
+		responses: getResponse(keyword,opOutcomeKeyword,opOutcomeKeyword)
 	};
     outputJson.paths[path]['get'] = {} = get;
     //#endregion
@@ -762,13 +758,13 @@ function buildSearchParameters(element) {
 	var searchParamJson = JSON.parse(fs.readFileSync('./schemas/search-parameters.json'));
 	var entries = JSONPath({ path: '$.entry.*', json: searchParamJson });
 
-	var quaryParams = [];
+	var queryParams = [];
 
 	Object.keys(entries).forEach(k => {
 		
 		var entry = entries[k]['resource'];
 		if (entry['base'].includes(element) || entry['name'].startsWith('_')) {
-			quaryParams.push({
+			queryParams.push({
 				name: entry['name'],
 				in: 'query',
 				type: 'string',
@@ -777,7 +773,21 @@ function buildSearchParameters(element) {
 		}
 	});
 
-	return quaryParams;
+	queryParams.push({
+		name: '_format',
+		in: 'query',
+		type: 'string',
+		description:
+			'Format parameter can use to get response by setting _fromat param value  from xml by _format=xml and response from json by _format=json',
+		'x-consoleDefault': "application/json"
+	}, {
+		name: '_language',
+		in: 'query',
+		type: 'string',
+		description: 'The language of the resource'
+	});
+
+	return queryParams;
 }
 
 function getSuccessResponse(element) {
@@ -806,6 +816,15 @@ function getDefaultResponse(element) {
 	}
 
 	return error;
+}
+
+function getResponse(success, error400, error500) {
+	return {
+		200: getSuccessResponse(success),
+		400: getDefaultResponse(error400),
+		500: getDefaultResponse(error500),
+		default: getDefaultResponse(error500)
+	};
 }
 
 // write output json file
