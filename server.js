@@ -57,7 +57,6 @@ Object.keys(properties).forEach((key) => {
     buildDefinition(keyword, key);
 });
 
-// buildOperationOutcomeAndBundle();
 appendOperationOutcomeAndBundle();
 
 // FIXME: change the implementation
@@ -765,12 +764,29 @@ function buildSearchParameters(element) {
 	Object.keys(entries).forEach(k => {
 		
 		var entry = entries[k]['resource'];
+
+		// this will also append search params of ref without any chaining
+		// TODO: an extra condition to eliminate the search param with ref without chaining
 		if (entry['base'].includes(element) || entry['name'].startsWith('_')) {
 			queryParams.push({
 				name: entry['name'],
 				in: 'query',
 				type: 'string',
 				description: entry['description']
+			});
+		}
+
+		// TODO: resource chaining implementation
+		if (entry['base'].includes(element) && entry['type'] === 'reference') {
+			var target = [] = entry['target'];
+			
+			if (!target) {
+				return;
+			}
+
+			target.forEach(t => {
+				var name = `${snakeToCamel(entry['name'])}:${t}`;
+				buildResourceChaining(queryParams, entries, t, name);
 			});
 		}
 	});
@@ -790,6 +806,42 @@ function buildSearchParameters(element) {
 	});
 
 	return queryParams;
+}
+
+function buildResourceChaining(queryParams, entries, target, name) {
+
+	Object.keys(entries).forEach(k => {
+		var entry = entries[k]['resource'];
+
+		if (entry['base'].includes(target) && entry['type'] !== 'reference') {
+
+			var description = entry['description'];
+
+			// split description if it is a Multiple Resources description
+			if (entry['description'].startsWith('Multiple Resources:')) {
+				var splits = [] = description.split('\r\n* ');
+				description = splits
+					.filter((s) => s.startsWith(`[${target}]`))[0]
+					.split(':')[1];
+			}
+
+			queryParams.push({
+				name: `${name}.${entry['name']}`,
+				in: 'query',
+				type: 'string',
+				description: description
+			});
+		}
+	});
+}
+
+function snakeToCamel(str) {
+	return str.replace(/([-_][a-z])/g, (group) =>
+		group
+			.toUpperCase()
+			.replace('-', '')
+			.replace('_', '')
+	);
 }
 
 function getSuccessResponse(element) {
