@@ -1,6 +1,6 @@
 # FHIR to Swagger
 
-A command line tool to convert FHIR R4 to Swagger definitions.
+A command line tool to convert FHIR R4 (4.0 Schema) to Swagger definitions.
 
 [:construction: Work-In-Progress]
 
@@ -55,3 +55,47 @@ node server.js Coverage
 ```
 
 The above command will generate the swagger-definitions and saves it inside the `/outputs` folder of the tool
+
+## Tool
+
+### Folder Structure
+
+```txt
+
+    -
+    |- bin
+    |    |- fhir-to-swagger
+    |- schemas
+    |    |- fhir.schema.json
+    |    |- search-parameters.json
+    |- utils
+    |    |- utils.js
+    |- server.js
+
+```
+
+### Usage
+
+The tool uses an internally stored FHIR Schema to generate the swagger definitions for requested resources to comply with the original specifications.
+
+> NOTE: This tool is not to generate swagger definitions from test servers or from any of the FHIR R4 servers. This tool generates a working swagger definition using the FHIR specs which are stored internally with the tool. The schemas and JSON specs used by the tool are downloaded from the [HL7 FHIR site](https://www.hl7.org/fhir/downloads.html)
+
+The tool traverse through the `fhir.schema.json` file to identify the request resource and extracts it and other related attributes and models from the spec to generate the definitions. The `search-parameters.json` file is used to identify the common search parameters and Resource specific search query parameters. The tool extracts Resource related search query parameters using the `search-parameters.json` schema.
+
+> **NOTE: Any changes to the above mentioned schema files can result in fault swagger definitions.**
+
+Moreover, the tool generates all applicable resource paths for the request Resource.
+
+For example: If Coverage resource has been requested using the below command
+
+```shell
+fhir-to-swagger Coverage .
+```
+
+then, the generated swagger definition (`coverage-output.json`) will include the following paths ...
+
+* `/Coverage` : GET, POST
+* `/Coverage/{id}` : GET, PUT, DELETE
+* `/Coverage/_history` : GET
+* `/Coverage/{id}/_history` : GET
+* `/Coverage/{id}/_history/{vid}` : GET
