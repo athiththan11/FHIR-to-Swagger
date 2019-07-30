@@ -93,7 +93,7 @@ function buildDefinition(obj, key) {
     //     return;
 	// }
 	
-	// not deleting extension element
+	// deleting the contained element (not extension element)
     if (key.toLowerCase().endsWith('contained')) {
         delete properties[key];
         return;
