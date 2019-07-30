@@ -99,3 +99,22 @@ then, the generated swagger definition (`coverage-output.json`) will include the
 * `/Coverage/_history` : GET
 * `/Coverage/{id}/_history` : GET
 * `/Coverage/{id}/_history/{vid}` : GET
+
+### Limitations
+
+The tool uses the `search-parameters.json` schema to identify and extract search query parameters related to a Resource as well as common parameters.
+
+* Resource Chaining
+* Modifiers
+
+#### Resource Chaining
+
+FHIR R4 supports advanced search operation called "Resource Chaining", but swagger doesn't have any support to define them.
+
+As a workaround, the tool will traverse through the `search-parameters.json` schema and extracts the query parameters which are having their type as 'reference', and based on the given reference Resource, it agains traverse and extracts all related search parameters for them and appends them inside the parameters section.
+
+> NOTE: The iteration and extraction is done only for one iteration of defined reference type Resource.
+
+#### Searh Modifiers
+
+The tool and the swagger doesn't support search modifiers of FHIR R4 resources and operations.
