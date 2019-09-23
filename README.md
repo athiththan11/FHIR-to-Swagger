@@ -40,7 +40,7 @@ fhir-to-swagger <Resource_Name> <Output_Directory>
 
 for example:
 
-If you need the `Coverage` resource inside the directory where you are executing
+Execute the following command from the root directory of the tool to generate the swagger definition for `Coverage` resource. This will generate the swagger definition inside the same tool directory
 
 ```shell
 fhir-to-swagger Coverage .
