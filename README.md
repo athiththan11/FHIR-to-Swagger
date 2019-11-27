@@ -35,16 +35,28 @@ npm link
 and use the following command pattern to execute the tool
 
 ```shell
-fhir-to-swagger <Resource_Name> <Output_Directory>
+fhir-to-swagger [Resource_Name] <--combine> --output <Output_Directory>
 ```
 
 for example:
 
-Execute the following command from the root directory of the tool to generate the swagger definition for `Coverage` resource. This will generate the swagger definition inside the same tool directory
+1. Execute the following command to generate the swagger definition for `Coverage` resource. This will generate the swagger definition inside the current working directory
 
-```shell
-fhir-to-swagger Coverage .
-```
+    ```shell
+    fhir-to-swagger Coverage --output .
+    ```
+
+2. Execute the following command to generate the swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources. This will generate the swagger definitions inside the current working directory
+
+    ```shell
+    fhir-to-swagger Coverage Claim ClaimResponse --output .
+    ```
+
+3. Execute the following command to generate a combined swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources. This will generate a combined swagger definitions inside the current working directory with the name `combined-swagger--output.json`
+
+    ```shell
+    fhir-to-swagger Coverage Claim ClaimResponse --combine --output .
+    ```
 
 #### Method 02
 
@@ -89,7 +101,7 @@ Moreover, the tool generates all applicable resource paths for the request Resou
 For example: If Coverage resource has been requested using the below command
 
 ```shell
-fhir-to-swagger Coverage .
+fhir-to-swagger Coverage --output .
 ```
 
 then, the generated swagger definition (`coverage-output.json`) will include the following paths ...
