@@ -1,380 +1,456 @@
-const fs = require('fs');
-const jsonPath = require('jsonpath-plus');
-const {
-	snakeToCamel,
-	appendOperationOutcomeAndBundle,
-	getResponse,
-	buildResourceChaining
-} = require('./utils/utils');
-const { JSONPath } = jsonPath;
-
-let args = require('yargs').argv;
-args = JSON.parse(JSON.stringify(args));
-args.resource = args._[0];
-args.outputFolder = args._[1] || `./outputs`;
-
-// * reads the fhir.schema.json file parses as json element
-let schemaFile = fs.readFileSync('./schemas/fhir.schema.json');
-let schemaJson = JSON.parse(schemaFile);
-let outputJson = {};
-
-if (!args.resource) {
-	console.warn('WARN :: No Resource defined.\nPlease use the following pattern to invoke the tool\n\nfhir-to-swagger <ResourceName> <OutputDirectory>\n');
-	return 0;
-}
-
-// resource keyword from argument
-let keyword = args.resource;
-
-let opOutcomeKeyword = 'OperationOutcome';
-let bundleKeyword = 'Bundle';
-let jPath = '$.definitions.';
-
-// * extracts the resource model from schema
-let resourceNode = JSONPath({
-	path: `${jPath}${keyword}`,
-	json: schemaJson
-})[0];
-
-if (!resourceNode) {
-	console.error('ERROR :: No Resource found for ' + keyword);
-	return 0;
-}
-
-// building output.json for the resource
-outputJson.swagger = '2.0';
-outputJson.definitions = {};
-
-outputJson.host = 'hapi.fhir.org';
-outputJson.basePath = `/${keyword.toLowerCase()}-api`;
-outputJson.info = {
-	title: `${keyword}FHIRAPI`,
-	version: schemaJson['id'].substring(
-		schemaJson['id'].lastIndexOf('/') + 1,
-		schemaJson['id'].length
+let argv = require('yargs')
+	.usage('Usage: $0 [fhir-resources] --combine --output [output-directory]')
+	.command('count', 'Count the lines in a file')
+	.example(
+		'$0 Coverage ClaimResponse --output .',
+		'generates swagger definitions for Coverage and ClaimResponse resources and store in the output directory specified'
 	)
-};
-outputJson.paths = {};
+	.example(
+		'$0 Coverage ClaimResponse --combine --output .',
+		'generates a combined swagger definition for Coverage and ClaimResponse resources and store in the output directory specified'
+	)
+	.alias('c', 'combine')
+	.nargs('c', 0)
+	.describe('c', 'Merge and combine all generated Swagger as one')
+	.alias('o', 'output')
+	.nargs('o', 1)
+	.describe('o', 'Output directory')
+	.help('h')
+	.alias('h', 'help').argv;
 
-// * assign the resource node to relevant key
-outputJson.definitions[keyword] = {} = resourceNode;
-outputJson.info['description'] = resourceNode['description'];
+const fs = require('fs');
+const moment = require('moment-timezone');
+const path = require('path');
+const winston = require('winston');
+const swaggermerge = require('swagger-merge');
 
-// extract properties section of the resource model
-let properties = JSONPath({ path: '$.properties', json: resourceNode })[0];
-let tagArray = [];
+const { JSONPath } = require('jsonpath-plus');
+const { appendOperationOutcomeAndBundle, buildResourceChaining, getResponse, snakeToCamel } = require('./utils/utils');
 
-// traverse through properties object using key value pairs
-Object.keys(properties).forEach((key) => {
-    buildDefinition(keyword, key);
+let args = {};
+args.resources = argv._;
+args.output = argv.output || path.join(__dirname, '/outputs');
+args.combine = argv.combine;
+
+if (!args.resources && args.resources.length > 0) {
+	logger.error(`No Resource defined.
+Please use the following pattern to invoke the tool
+
+fhir-to-swagger <ResourceName> <OutputDirectory>
+`);
+	return 0;
+}
+
+// #region winston logger configurations
+
+/*
+ *
+ * specified winston logger format will contain the following pattern
+ * LEVEL :: MESSAGE
+ *
+ * NOTE: haven't appended the time since this is executed at the client side
+ *
+ * two log files will be created at the time of execution
+ * 1. fhir-to-swagger-error.log : only contains the error logs of the server
+ * 2. fhir-to-swagger.log : contains both error and other levels of logs
+ *
+ */
+
+const appendTimestamp = winston.format((info, opts) => {
+	info.timestamp = moment().format();
+	return info;
 });
 
-appendOperationOutcomeAndBundle(outputJson);
-
-// FIXME: change the implementation
-// traverse through elements and build definitions
-[0,1,2].forEach(() => {
-    traverseElement();
+const loggerFormat = winston.format.printf((info) => {
+	return `${info.timestamp} ${info.level.toUpperCase()} :: ${info.message}`;
 });
 
-buildPaths();
+const logger = winston.createLogger({
+	format: winston.format.combine(appendTimestamp({}), loggerFormat),
+	transports: [
+		new winston.transports.File({
+			filename: path.join(__dirname, '/repository/logs', 'fhir-to-swagger-error.log'),
+			level: 'error',
+		}),
+		new winston.transports.File({
+			filename: path.join(__dirname, '/repository/logs', 'fhir-to-swagger.log'),
+			level: 'debug',
+		}),
+		new winston.transports.Console({ level: 'debug' }),
+	],
+	exitOnError: false,
+});
 
-function buildDefinition(obj, key) {
+// #endregion
 
-    // * resourceType const element is not supported. remove that element & append type 
-    if (key === 'resourceType') {
-        delete properties[key]['const'];
-        properties[key].type = 'string';
-    }
+let fhirSchema = fs.readFileSync(path.join(__dirname, '/schemas/fhir.schema.json'));
+let fhirSchemaJSON = JSON.parse(fhirSchema);
 
-    // to delete extension elements
-    // if (key.toLowerCase().endsWith('extension') || key.toLowerCase().endsWith('contained')) {
-    //     delete properties[key];
-    //     return;
-	// }
-	
-	// deleting the contained element (not extension element)
-    if (key.toLowerCase().endsWith('contained')) {
-        delete properties[key];
-        return;
-    }
+let kw_OpOut = 'OperationOutcome',
+	kw_Bundle = 'Bundle';
+let _jPath = '$.definitions.';
 
-    // if key starts with _ character then return
-    if (key.startsWith('_')) {
-        delete outputJson.definitions[obj].properties[key];
-        return;
+let swaggerStore = [];
+
+/**
+ * method to generate swagger definitions for the defined the FHIR resources
+ *
+ * @param {any} _resource FHIR resource keyword
+ */
+function generate(_resource) {
+	logger.info('Starting to generate Swagger definition for FHIR resource = ' + _resource);
+	// extract resource model FHIR schema
+	let fhirResource = JSONPath({
+		path: `${_jPath}${_resource}`,
+		json: fhirSchemaJSON,
+	})[0];
+
+	if (!fhirResource) {
+		logger.error(`No FHIR resource found for ${_resource}`);
+		return 0;
 	}
 
-	// checks for Extension object and check $ref in properties to eliminate complex reference
-	if (obj === 'Extension' && key.startsWith('value')) {
-		let n = properties[key];
+	// swagger json schema
+	let swaggerJSON = {
+		swagger: '2.0',
+		definitions: {},
+		host: 'hapi.fhir.org',
+		basePath: `/${_resource.toLowerCase()}-api`,
+		info: {
+			title: `${_resource}FHIRAPI`,
+			version: fhirSchemaJSON['id'].substring(
+				fhirSchemaJSON['id'].lastIndexOf('/') + 1,
+				fhirSchemaJSON['id'].length
+			),
+			description: fhirResource['description'],
+		},
+		paths: {},
+	};
+	swaggerJSON.definitions[_resource] = {} = fhirResource;
+
+	let props = JSONPath({
+		path: '$.properties',
+		json: fhirResource,
+	})[0];
+	let tags = [];
+
+	Object.keys(props).forEach((k) => {
+		buildResourceDef(_resource, k, props, tags, swaggerJSON);
+	});
+
+	appendOperationOutcomeAndBundle(swaggerJSON);
+	[0, 1, 2].forEach(() => {
+		traverseElements(props, tags, swaggerJSON);
+	});
+
+	buildPaths(_resource, swaggerJSON);
+
+	logger.info('Writing Swagger definition for FHIR resource = ' + _resource);
+
+	// store the swagger JSON generated for FHIR resources to combine them
+	if (args.combine) swaggerStore.push(swaggerJSON);
+
+	// write output json file
+	fs.writeFileSync(`${args.output}/${_resource.toLowerCase()}-output.json`, JSON.stringify(swaggerJSON), (err) => {
+		if (err) {
+			logger.error(err);
+		}
+	});
+}
+
+/**
+ * method to generate and populate resource definitions
+ *
+ * @param {any} node resource node
+ * @param {any} key keyword
+ * @param {any} _props properties
+ * @param {any} _tags tags
+ * @param {any} _swagger swagger JSON
+ */
+function buildResourceDef(node, key, _props, _tags, _swagger) {
+	// remove const elements from the resource-type and append type element with string,
+	// since this is not supported by the swagger definitions
+	if (key === 'resourceType') {
+		delete _props[key]['const'];
+		_props[key].type = 'string';
+	}
+
+	// remove extensions
+	// if (key.toLowerCase().endsWith('extension') || key.toLowerCase().endsWith('contained')) {
+	//     delete _props[key];
+	//     return;
+	// }
+
+	// remove contained elements
+	if (key.toLowerCase().endsWith('contained')) {
+		delete _props[key];
+		return;
+	}
+
+	// if key starts with _ remove the property and return
+	if (key.startsWith('_')) {
+		delete _swagger.definitions[node].properties[key];
+		return;
+	}
+
+	// check for Extension object and check $ref in properties to eliminate complex references
+	if (node === 'Extension' && key.startsWith('value')) {
+		let n = _props[key];
 		let ref = n['$ref'];
 
-		// delete complex reference if it is not predefined already (patch with string type if not exists)
-		if (ref && !['string', 'number', 'boolean'].concat(tagArray).includes(ref.substring(ref.lastIndexOf('/') + 1, ref.length))) {
-			outputJson.definitions[obj].properties[key].type = 'string';
-			delete outputJson.definitions[obj].properties[key]['$ref'];
+		// delete complex reference if it is not pre-defined already
+		// (patch with string type if not exists)
+		if (
+			ref &&
+			!['string', 'number', 'boolean'].concat(_tags).includes(ref.substring(ref.lastIndexOf('/') + 1, ref.length))
+		) {
+			_swagger.definitions[node].properties[key].type = 'string';
+			delete _swagger.definitions[node].properties[key]['$ref'];
 		}
 	}
 
-    // retrieve a property object and check for $ref element
-    let node = properties[key];
-    let reference = null;
-    if (node['items']) {
-        reference = node['items']['$ref'];
-    } else {
-        reference = node['$ref'];
-    }
+	// retrieve a property object and check for $ref element
+	let n = _props[key];
+	let ref = null;
 
-    // if no $ref tags return the loop;
-    if (!reference) { return; }
-    
-    /**
-     * extract the $ref tag element and split the value with the lastIndexOf '/' to 
-     * get the refered element node and do a jsonpath retrieval to extract the refered node
-     */
-    let elementTag = reference.substring(
-		reference.lastIndexOf('/') + 1,
-		reference.length
-	);
-    if (!tagArray.includes(elementTag)) {
-        tagArray.push(elementTag);
-    } else {
-        return;
-    }
-    let tempElement = JSONPath({
-		path: `${jPath}${elementTag}`,
-		json: schemaJson
-	})[0];
+	if (n['items']) ref = n['items']['$ref'];
+	else ref = n['$ref'];
 
-    // * delete description element if any $ref as sibling element
-    if(tempElement['$ref']) {
-		delete tempElement['description'];
-	}
-	
-	// * adding string type to xhtml element
-	if (elementTag === 'xhtml') {
-		tempElement.type = 'string';
-	}
+	// if no $ref tags return the loop
+	if (!ref) return;
 
-    outputJson.definitions[elementTag] = {} = tempElement;
+	// extract the $ref tag element and split the values with the lastIndexOf '/' to
+	// get the referred element node and do a JSON Path retrieval to extract the referred node
+	let elemTag = ref.substring(ref.lastIndexOf('/') + 1, ref.length);
+	if (!_tags.includes(elemTag)) _tags.push(elemTag);
+	else return;
+
+	let tempElem = JSONPath({ path: `${_jPath}${elemTag}`, json: fhirSchemaJSON })[0];
+
+	// delete description element if any $ref as sibling elements
+	if (tempElem['$ref']) delete tempElem['description'];
+
+	// add string type to xhtml elements
+	if (elemTag === 'xhtml') tempElem.type = 'string';
+
+	_swagger.definitions[elemTag] = {} = tempElem;
 }
 
-function traverseElement() {
-    tagArray.forEach((e) => {
-        let element = JSONPath({
-			path: jPath + e,
-			json: schemaJson
-		})[0];
-        properties = JSONPath({ path: '$.properties', json: element })[0];
-        
-        if (!properties) { return; }
+/**
+ * method to traverse through the elements
+ *
+ * @param {any} _props properties
+ * @param {any} _tags tags
+ * @param {any} _swagger swagger JSON
+ */
+function traverseElements(_props, _tags, _swagger) {
+	_tags.forEach((e) => {
+		let elem = JSONPath({ path: _jPath + e, json: fhirSchemaJSON })[0];
+		_props = JSONPath({ path: '$.properties', json: elem })[0];
 
-        Object.keys(properties).forEach((key) => {
-            buildDefinition(e, key);
-        });
-    });
+		if (!_props) return;
+
+		Object.keys(_props).forEach((k) => {
+			buildResourceDef(e, k, _props, _tags, _swagger);
+		});
+	});
 }
 
-function buildPaths() {
+/**
+ * method to build and generate resource paths
+ *
+ * @param {any} _key keywrod
+ * @param {any} _swagger swagger JSON
+ */
+function buildPaths(_key, _swagger) {
+	// #region produces section
 
-	//#region produces section
-	let produces = [
-		"application/json",
-		"application/xml",
-		"application/fhir+xml",
-		"application/fhir+json"
-	];
-	outputJson.produces = produces;
-	//#endregion
+	let produces = ['application/json', 'application/xml', 'application/fhir+xml', 'application/fhir+json'];
+	_swagger.produces = produces;
 
-    //#region / path
-    let path = `/${keyword}`;
-    outputJson.paths[path] = {};
+	// #endregion
 
-    let post = {
-		tags: [keyword],
+	// #region / path
+
+	let path = `/${_key}`;
+	_swagger.paths[path] = {};
+
+	let post = {
+		tags: [_key],
 		parameters: [
 			{
 				name: 'body',
 				in: 'body',
 				schema: {
-					$ref: `#/definitions/${keyword}`
-				}
-			}
+					$ref: `#/definitions/${_key}`,
+				},
+			},
 		],
-		responses: getResponse(keyword,opOutcomeKeyword,opOutcomeKeyword)
+		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-    outputJson.paths[path]['post'] = post;
+	_swagger.paths[path]['post'] = post;
 
-    let get = {
-		tags: [keyword],
-		parameters: buildSearchParameters(keyword),
-		responses: getResponse(bundleKeyword,opOutcomeKeyword,opOutcomeKeyword)
+	let get = {
+		tags: [_key],
+		parameters: buildSearchParameters(_key),
+		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-    outputJson.paths[path]['get'] = get;
-    //#endregion 
+	_swagger.paths[path]['get'] = get;
 
+	// #endregion
 
-    //#region /Resource/{id} path
-    path = `/${keyword}/{id}`;
-    outputJson.paths[path] = {};
+	// #region /Resource/{id} path
 
-    let parameters = [
+	path = `/${_key}/{id}`;
+	_swagger.paths[path] = {};
+
+	let parameters = [
 		{
 			name: 'id',
 			in: 'path',
 			type: 'string',
-			required: true
-		}
+			required: true,
+		},
 	];
-    outputJson.paths[path]['parameters'] = {} = parameters;
+	_swagger.paths[path]['parameters'] = {} = parameters;
 
-    get = {
-		tags: [keyword],
+	get = {
+		tags: [_key],
 		parameters: [],
-		responses: getResponse(keyword, opOutcomeKeyword, opOutcomeKeyword)
+		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-    outputJson.paths[path]['get'] = get;
+	_swagger.paths[path]['get'] = get;
 
-    let put = {
-		tags: [keyword],
+	let put = {
+		tags: [_key],
 		parameters: [
 			{
 				name: 'body',
 				in: 'body',
 				schema: {
-					$ref: `#/definitions/${keyword}`
-				}
-			}
+					$ref: `#/definitions/${_key}`,
+				},
+			},
 		],
-		responses: getResponse(keyword, opOutcomeKeyword, opOutcomeKeyword)
+		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-    outputJson.paths[path]['put'] = put;
+	_swagger.paths[path]['put'] = put;
 
-    let del = {
-		tags: [keyword],
+	let del = {
+		tags: [_key],
 		parameters: [],
-		responses: getResponse(
-			opOutcomeKeyword,
-			opOutcomeKeyword,
-			opOutcomeKeyword
-		)
+		responses: getResponse(kw_OpOut, kw_OpOut, kw_OpOut),
 	};
-    outputJson.paths[path]['delete'] = del;
-    //#endregion
+	_swagger.paths[path]['delete'] = del;
 
-    //#region /Resource/_history path
-    path = `/${keyword}/_history`;
-	outputJson.paths[path] = {};
-	
-	let historyParameters = [
+	// #endregion
+
+	// #region /Resource/_history path
+
+	path = `/${_key}/_history`;
+	_swagger.paths[path] = {};
+
+	let historyParams = [
 		{
 			name: '_since',
 			in: 'query',
-			type: 'string'
+			type: 'string',
 		},
 		{
 			name: '_count',
 			in: 'query',
-			type: 'string'
-		}
+			type: 'string',
+		},
 	];
 
-    get = {
-		tags: [keyword],
-		parameters: historyParameters,
-		responses: getResponse(
-			bundleKeyword,
-			opOutcomeKeyword,
-			opOutcomeKeyword
-		)
+	get = {
+		tags: [_key],
+		parameters: historyParams,
+		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-    outputJson.paths[path]['get'] = {} = get;
-    //#endregion
+	_swagger.paths[path]['get'] = {} = get;
 
-    //#region /Resource/{id}/_history path
-    path = `/${keyword}/{id}/_history`;
-    outputJson.paths[path] = {};
+	// #endregion
 
-    get = {
-		tags: [keyword],
+	// #region /Resource/{id}/_history path
+
+	path = `/${_key}/{id}/_history`;
+	_swagger.paths[path] = {};
+
+	get = {
+		tags: [_key],
 		parameters: [
 			{
 				name: 'id',
 				in: 'path',
 				type: 'string',
-				required: true
-			}
-		].concat(historyParameters),
-		responses: getResponse(bundleKeyword,opOutcomeKeyword,opOutcomeKeyword)
+				required: true,
+			},
+		].concat(historyParams),
+		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
+	_swagger.paths[path]['get'] = {} = get;
 
-    outputJson.paths[path]['get'] = {} = get;
-    //#endregion
+	// #endregion
 
-    //#region /Resource/{id}/_history/{vid} path
-    path = `/${keyword}/{id}/_history/{vid}`;
-    outputJson.paths[path] = {};
+	// #region /Resource/{id}/_history/{vid} path
 
-    get = {
-		tags: [keyword],
+	path = `/${_key}/{id}/_history/{vid}`;
+	_swagger.paths[path] = {};
+
+	get = {
+		tags: [_key],
 		parameters: [
 			{
 				name: 'id',
 				in: 'path',
 				type: 'string',
-				required: true
+				required: true,
 			},
 			{
 				name: 'vid',
 				in: 'path',
 				type: 'string',
-				required: true
-			}
+				required: true,
+			},
 		],
-		responses: getResponse(keyword,opOutcomeKeyword,opOutcomeKeyword)
+		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-    outputJson.paths[path]['get'] = {} = get;
-    //#endregion
+	_swagger.paths[path]['get'] = {} = get;
+
+	// #endregion
 }
 
-function buildSearchParameters(element) {
-
-	let searchParamJson = JSON.parse(
-		fs.readFileSync('./schemas/search-parameters.json')
-	);
-	let entries = JSONPath({ path: '$.entry.*', json: searchParamJson });
-
+/**
+ * method to populate search parameters for the defined FHIR
+ * resources based on the search-parameters.json schema
+ *
+ * @param {any} elem element
+ */
+function buildSearchParameters(elem) {
+	let searchParamJSON = JSON.parse(fs.readFileSync(path.join(__dirname, '/schemas/search-parameters.json')));
+	let entries = JSONPath({ path: '$.entry.*', json: searchParamJSON });
 	let queryParams = [];
 
-	Object.keys(entries).forEach(k => {
-		
+	Object.keys(entries).forEach((k) => {
 		let entry = entries[k]['resource'];
 
-		// this will also append search params of ref without any chaining
-		// TODO: an extra condition to eliminate the search param with ref without chaining
-		if (entry['base'].includes(element) || entry['name'].startsWith('_')) {
+		// append search params of ref without any chaining
+		if (entry['base'].includes(elem) || entry['name'].startsWith('_'))
 			queryParams.push({
 				name: entry['name'],
 				in: 'query',
 				type: 'string',
-				description: entry['description']
+				description: entry['description'],
 			});
-		}
 
-		// * resource chaining implementation
-		if (entry['base'].includes(element) && entry['type'] === 'reference') {
+		// resource chaining implementation
+		if (entry['base'].includes[elem] && entry['type'] === 'reference') {
 			let target = ([] = entry['target']);
-			
-			if (!target) {
-				return;
-			}
+			if (!target) return;
 
-			target.forEach(t => {
-				let name = `${snakeToCamel(
-					entry['name']
-				)}:${t}`;
+			target.forEach((t) => {
+				let name = `${snakeToCamel(entry['name'])}:${t}`;
 				buildResourceChaining(queryParams, entries, t, name);
 			});
 		}
@@ -398,11 +474,40 @@ function buildSearchParameters(element) {
 	return queryParams;
 }
 
-// write output json file
-fs.writeFileSync(`${args.outputFolder}/${keyword.toLowerCase()}-output.json`, JSON.stringify(outputJson), (err) => {
-    if (err) {
-        console.error(err);
-    }
+/**
+ * method to merge multiple swagger definitions generated for
+ * multiple FHIR resources
+ */
+function mergeSwagger() {
+	logger.info(`Starting to merge Swagger definitions of ${args.resources.join(' ')}`);
+
+	let info = {
+		title: `${args.resources.join('-')}--FHIRAPI`,
+		version: `1.0.0`,
+		description: `Swagger for FHIR Resources ${args.resources.join(', ')}`,
+	};
+
+	let host = 'hapi.fhir.org';
+	let schemas = ['http', 'https'];
+	let basePath = '/';
+
+	let merged = swaggermerge.merge(swaggerStore, info, basePath, host, schemas);
+
+	logger.info(`Writing Swagger definition for the combined FHIR resources`);
+
+	fs.writeFileSync(`${args.output}/combined-swagger--output.json`, JSON.stringify(merged), (err) => {
+		if (err) {
+			logger.error(err);
+		}
+	});
+}
+
+logger.info(`-------------------------- Starting FHIR to Swagger --------------------------`);
+
+args.resources.forEach((k) => {
+	generate(k);
 });
 
-console.log('Finished Processing');
+if (args.combine) mergeSwagger();
+
+logger.info(`-------------------------- Finish Processing --------------------------`);
