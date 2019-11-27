@@ -1,40 +1,10 @@
-let argv = require('yargs')
-	.usage('Usage: $0 [fhir-resources] --output [output-directory]')
-	.command('count', 'Count the lines in a file')
-	.example(
-		'$0 Coverage ClaimResponse --output .',
-		'generates swagger definitions for Coverage and ClaimResponse resources and store in the output directory specified'
-	)
-	.alias('o', 'output')
-	.nargs('o', 1)
-	.describe('o', 'Output directory')
-	.help('h')
-	.alias('h', 'help').argv;
-
 const fs = require('fs');
 const moment = require('moment-timezone');
 const path = require('path');
 const winston = require('winston');
 
-const swaggermerge = require('swagger-merge');
-var swaggerOne = require('./outputs/coverage-output.json');
-var swaggerTwo = require('./outputs/claim-output.json');
-
 const { JSONPath } = require('jsonpath-plus');
 const { appendOperationOutcomeAndBundle, buildResourceChaining, getResponse, snakeToCamel } = require('./utils/utils');
-
-let args = {};
-args.resources = argv._;
-args.output = argv.output || path.join(__dirname, '/outputs');
-
-if (!args.resources && args.resources.length > 0) {
-	logger.error(`No Resource defined.
-Please use the following pattern to invoke the tool
-
-fhir-to-swagger <ResourceName> <OutputDirectory>
-`);
-	return 0;
-}
 
 // #region winston logger configurations
 
@@ -78,6 +48,21 @@ const logger = winston.createLogger({
 
 // #endregion
 
+let argv = require('yargs').argv;
+
+let args = {};
+args.resources = argv._;
+args.output = argv.output || path.join(__dirname, '/outputs');
+
+if (!args.resources && args.resources.length > 0) {
+	logger.error(`No Resource defined.
+Please use the following pattern to invoke the tool
+
+fhir-to-swagger <ResourceName> <OutputDirectory>
+`);
+	return 0;
+}
+
 let fhirSchema = fs.readFileSync(path.join(__dirname, '/schemas/fhir.schema.json'));
 let fhirSchemaJSON = JSON.parse(fhirSchema);
 
@@ -86,12 +71,11 @@ let kw_OpOut = 'OperationOutcome',
 let _jPath = '$.definitions.';
 
 function generate(_resource) {
-	logger.info('Starting to generate Swagger definition for FHIR resource = ' + _resource);
 	// extract resource model FHIR schema
 	let fhirResource = JSONPath({
-		path: `${_jPath}${_resource}`,
+		path: `${-_jPath}${_resource}`,
 		json: fhirSchemaJSON
-	})[0];
+	});
 
 	if (!fhirResource) {
 		logger.error(`No FHIR resource found for ${_resource}`);
@@ -123,55 +107,57 @@ function generate(_resource) {
 	let tags = [];
 
 	Object.keys(props).forEach((k) => {
-		buildResourceDef(_resource, k, props, tags, swaggerJSON);
+		buildResourceDef(_resource, k, props, tags);
 	});
 
 	appendOperationOutcomeAndBundle(swaggerJSON);
 	[0, 1, 2].forEach(() => {
-		traverseElements(props, tags, swaggerJSON);
+		traverseElements(props, tags);
 	});
 
-	buildPaths(_resource, swaggerJSON);
-
-	logger.info('Writing Swagger definition for FHIR resource = ' + _resource);
+	buildPaths(_resource);
 
 	// write output json file
-	fs.writeFileSync(`${args.output}/${_resource.toLowerCase()}-output.json`, JSON.stringify(swaggerJSON), (err) => {
-		if (err) {
-			logger.error(err);
+	fs.writeFileSync(
+		`${args.outputFolder}/${_resource.toLowerCase()}-output.json`,
+		JSON.stringify(swaggerJSON),
+		(err) => {
+			if (err) {
+				logger.error(err);
+			}
 		}
-	});
+	);
 }
 
-function buildResourceDef(node, key, _props, _tags, _swagger) {
+function buildResourceDef(node, key, _props, _tags) {
 	// remove const elements from the resource-type and append type element with string,
 	// since this is not supported by the swagger definitions
-	if (key === 'resourceType') {
-		delete _props[key]['const'];
-		_props[key].type = 'string';
+	if (node === 'resourceType') {
+		delete _props[node]['const'];
+		_props[node].type = 'string';
 	}
 
 	// remove extensions
-	// if (key.toLowerCase().endsWith('extension') || key.toLowerCase().endsWith('contained')) {
-	//     delete _props[key];
+	// if (node.toLowerCase().endsWith('extension') || node.toLowerCase().endsWith('contained')) {
+	//     delete _props[node];
 	//     return;
 	// }
 
 	// remove contained elements
-	if (key.toLowerCase().endsWith('contained')) {
-		delete _props[key];
+	if (node.toLowerCase().endsWith('contained')) {
+		delete _props[node];
 		return;
 	}
 
-	// if key starts with _ remove the property and return
-	if (key.startsWith('_')) {
-		delete _swagger.definitions[node].properties[key];
+	// if node starts with _ remove the property and return
+	if (node.startsWith('_')) {
+		delete swaggerJSON.definitions[key].properties[node];
 		return;
 	}
 
 	// check for Extension object and check $ref in properties to eliminate complex references
-	if (node === 'Extension' && key.startsWith('value')) {
-		let n = _props[key];
+	if (key === 'Extension' && node.startsWith('value')) {
+		let n = _props[node];
 		let ref = n['$ref'];
 
 		// delete complex reference if it is not pre-defined already
@@ -180,13 +166,13 @@ function buildResourceDef(node, key, _props, _tags, _swagger) {
 			ref &&
 			!['string', 'number', 'boolean'].concat(_tags).includes(ref.substring(ref.lastIndexOf('/') + 1, ref.length))
 		) {
-			_swagger.definitions[node].properties[key].type = 'string';
-			delete _swagger.definitions[node].properties[key]['$ref'];
+			swaggerJSON.definitions[key].properties[node].type = 'string';
+			delete swaggerJSON.definitions[key].properties[node]['$ref'];
 		}
 	}
 
 	// retrieve a property object and check for $ref element
-	let n = _props[key];
+	let n = _props[node];
 	let ref = null;
 
 	if (n['items']) ref = n['items']['$ref'];
@@ -209,10 +195,10 @@ function buildResourceDef(node, key, _props, _tags, _swagger) {
 	// add string type to xhtml elements
 	if (elemTag === 'xhtml') tempElem.type = 'string';
 
-	_swagger.definitions[elemTag] = {} = tempElem;
+	swaggerJSON.definitions[elemTag] = {} = tempElem;
 }
 
-function traverseElements(_props, _tags, _swagger) {
+function traverseElements(_props, _tags) {
 	_tags.forEach((e) => {
 		let elem = JSONPath({ path: _jPath + e, json: fhirSchemaJSON })[0];
 		_props = JSONPath({ path: '$.properties', json: elem })[0];
@@ -220,23 +206,23 @@ function traverseElements(_props, _tags, _swagger) {
 		if (!_props) return;
 
 		Object.keys(_props).forEach((k) => {
-			buildResourceDef(e, k, _props, _tags, _swagger);
+			buildResourceDef(e, k, _props, _tags);
 		});
 	});
 }
 
-function buildPaths(_key, _swagger) {
+function buildPaths(_key) {
 	// #region produces section
 
 	let produces = ['application/json', 'application/xml', 'application/fhir+xml', 'application/fhir+json'];
-	_swagger.produces = produces;
+	swaggerJSON.produces = produces;
 
 	// #endregion
 
 	// #region / path
 
 	let path = `/${_key}`;
-	_swagger.paths[path] = {};
+	swaggerJSON.paths[path] = {};
 
 	let post = {
 		tags: [_key],
@@ -251,21 +237,21 @@ function buildPaths(_key, _swagger) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['post'] = post;
+	swaggerJSON.paths[path]['post'] = post;
 
 	let get = {
 		tags: [_key],
 		parameters: buildSearchParameters(_key),
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['get'] = get;
+	swaggerJSON.paths[path]['get'] = get;
 
 	// #endregion
 
 	// #region /Resource/{id} path
 
 	path = `/${_key}/{id}`;
-	_swagger.paths[path] = {};
+	swaggerJSON.paths[path] = {};
 
 	let parameters = [
 		{
@@ -275,14 +261,14 @@ function buildPaths(_key, _swagger) {
 			required: true
 		}
 	];
-	_swagger.paths[path]['parameters'] = {} = parameters;
+	swaggerJSON.paths[path]['parameters'] = {} = parameters;
 
 	get = {
 		tags: [_key],
 		parameters: [],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['get'] = get;
+	swaggerJSON.paths[path]['get'] = get;
 
 	let put = {
 		tags: [_key],
@@ -297,21 +283,21 @@ function buildPaths(_key, _swagger) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['put'] = put;
+	swaggerJSON.paths[path]['put'] = put;
 
 	let del = {
 		tags: [_key],
 		parameters: [],
 		responses: getResponse(kw_OpOut, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['delete'] = del;
+	swaggerJSON.paths[path]['delete'] = del;
 
 	// #endregion
 
 	// #region /Resource/_history path
 
 	path = `/${_key}/_history`;
-	_swagger.paths[path] = {};
+	swaggerJSON.paths[path] = {};
 
 	let historyParams = [
 		{
@@ -331,14 +317,14 @@ function buildPaths(_key, _swagger) {
 		parameters: historyParams,
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['get'] = {} = get;
+	swaggerJSON.paths[path]['get'] = {} = get;
 
 	// #endregion
 
 	// #region /Resource/{id}/_history path
 
 	path = `/${_key}/{id}/_history`;
-	_swagger.paths[path] = {};
+	swaggerJSON.paths[path] = {};
 
 	get = {
 		tags: [_key],
@@ -352,14 +338,14 @@ function buildPaths(_key, _swagger) {
 		].concat(historyParams),
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['get'] = {} = get;
+	swaggerJSON.paths[path]['get'] = {} = get;
 
 	// #endregion
 
 	// #region /Resource/{id}/_history/{vid} path
 
 	path = `/${_key}/{id}/_history/{vid}`;
-	_swagger.paths[path] = {};
+	swaggerJSON.paths[path] = {};
 
 	get = {
 		tags: [_key],
@@ -379,7 +365,7 @@ function buildPaths(_key, _swagger) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut)
 	};
-	_swagger.paths[path]['get'] = {} = get;
+	swaggerJSON.paths[path]['get'] = {} = get;
 
 	// #endregion
 }
@@ -433,23 +419,8 @@ function buildSearchParameters(elem) {
 
 logger.info(`-------------------------- Starting FHIR to Swagger --------------------------`);
 
-// args.resources.forEach((k) => {
-// 	generate(k);
-// });
-
-var info = {
-	version: '0.0.1',
-	title: 'merged swaggers',
-	description: 'all mighty services merged together\n'
-};
-var schemes = ['http'];
-
-// let merged = swaggermerge.merge([swaggerOne, swaggerTwo], info, '/api', 'test.com', schemes);
-let merged = swaggermerge.merge([swaggerOne, swaggerTwo], info, '/', 'something.com', schemes);
-fs.writeFileSync(`${args.output}/something-output.json`, JSON.stringify(merged), (err) => {
-	if (err) {
-		logger.error(err);
-	}
+args.resources.forEach((k) => {
+	generate(k);
 });
 
 logger.info(`-------------------------- Finish Processing --------------------------`);

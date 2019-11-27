@@ -14,8 +14,14 @@
 		"url": "https://github.com/athiththan11/FHIR-to-Swagger/issues"
 	},
 	"dependencies": {
+		"@rebilly/swagger-combine": "1.1.0",
 		"jsonpath-plus": "0.20.1",
-		"yargs": "13.3.0"
+		"log-timestamp": "0.3.0",
+		"moment-timezone": "0.5.27",
+		"swagger-combine": "^1.0.0",
+		"swagger-merge": "^0.4.0",
+		"winston": "3.2.1",
+		"yargs": "15.0.2"
 	},
 	"bin": {
 		"fhir-to-swagger": "./bin/fhir-to-swagger"
