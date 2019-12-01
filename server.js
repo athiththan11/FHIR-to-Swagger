@@ -9,9 +9,25 @@ let argv = require('yargs')
 		'$0 Coverage ClaimResponse --combine --output .',
 		'generates a combined swagger definition for Coverage and ClaimResponse resources and store in the output directory specified'
 	)
+	.example(
+		'$0 Coverage ClaimResponse --combine --title Combined--FHIR-API --host hapi.fhir.org --base fhir --swagger-version 2.0.0 --output .',
+		'generates a combined swagger definition for Coverage and ClaimResponse resources and store in the output directory specified with the passed argument set'
+	)
 	.alias('c', 'combine')
 	.nargs('c', 0)
 	.describe('c', 'Merge and combine all generated Swagger as one')
+	.alias('t', 'title')
+	.nargs('t', 1)
+	.describe('t', 'Title of the generate Swagger definition')
+	.alias('u', 'host')
+	.nargs('u', 1)
+	.describe('u', 'Host URL of the generated Swagger definition')
+	.alias('b', 'base')
+	.nargs('b', 1)
+	.describe('b', 'Base Path of the generated Swagger definition')
+	.alias('s', 'swagger-version')
+	.nargs('s', 1)
+	.describe('s', 'Version of the generated Swagger definition')
 	.alias('o', 'output')
 	.nargs('o', 1)
 	.describe('o', 'Output directory')
@@ -31,6 +47,13 @@ let args = {};
 args.resources = argv._;
 args.output = argv.output || path.join(__dirname, '/outputs');
 args.combine = argv.combine;
+
+if (args.combine) {
+	args.title = argv.title;
+	args.host = argv.host;
+	args.base = argv.base;
+	args.version = argv[`swagger-version`];
+}
 
 if (!args.resources && args.resources.length > 0) {
 	logger.error(`No Resource defined.
@@ -148,7 +171,7 @@ function generate(_resource) {
 	logger.info('Writing Swagger definition for FHIR resource = ' + _resource);
 
 	// store the swagger JSON generated for FHIR resources to combine them
-	if (args.combine) swaggerStore.push(swaggerJSON);
+	if (args.combine && args.resources.length > 1) swaggerStore.push(swaggerJSON);
 
 	// write output json file
 	fs.writeFileSync(`${args.output}/${_resource.toLowerCase()}-output.json`, JSON.stringify(swaggerJSON), (err) => {
@@ -482,14 +505,14 @@ function mergeSwagger() {
 	logger.info(`Starting to merge Swagger definitions of ${args.resources.join(' ')}`);
 
 	let info = {
-		title: `${args.resources.join('-')}--FHIRAPI`,
-		version: `1.0.0`,
+		title: args.title || `${args.resources.join('-')}--FHIRAPI`,
+		version: args.version || `1.0.0`,
 		description: `Swagger for FHIR Resources ${args.resources.join(', ')}`,
 	};
 
-	let host = 'hapi.fhir.org';
+	let host = args.host || 'hapi.fhir.org';
 	let schemas = ['http', 'https'];
-	let basePath = '/';
+	let basePath = `/${args.base}` || '/';
 
 	let merged = swaggermerge.merge(swaggerStore, info, basePath, host, schemas);
 
@@ -508,6 +531,6 @@ args.resources.forEach((k) => {
 	generate(k);
 });
 
-if (args.combine) mergeSwagger();
+if (args.combine && args.resources.length > 1) mergeSwagger();
 
 logger.info(`-------------------------- Finish Processing --------------------------`);
