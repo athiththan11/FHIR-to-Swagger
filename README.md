@@ -46,16 +46,28 @@ for example:
     fhir-to-swagger Coverage --output .
     ```
 
-2. Execute the following command to generate the swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources. This will generate the swagger definitions inside the current working directory
+2. Execute the following command to generate the swagger definition for `Coverage` resource with passed `basePath`.
+
+    ```shell
+    fhir-to-swagger Coverage --base fhir-api --output .
+    ```
+
+3. Execute the following command to generate the swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources. This will generate the swagger definitions inside the current working directory
 
     ```shell
     fhir-to-swagger Coverage Claim ClaimResponse --output .
     ```
 
-3. Execute the following command to generate a combined swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources. This will generate a combined swagger definitions inside the current working directory with the name `combined-swagger--output.json`
+4. Execute the following command to generate a combined swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources. This will generate a combined swagger definitions inside the current working directory with the name `combined-swagger--output.json`
 
     ```shell
     fhir-to-swagger Coverage Claim ClaimResponse --combine --output .
+    ```
+
+5. Execute the folloing command to generate a combined swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources with custom `version`, `basePath`, `host`.
+
+    ```shell
+    fhir-to-swagger Coverage Claim ClaimResponse --combine --title Combined--FHIR-API --host hapi.fhir.org --base fhir --swagger-version 2.0.0 --output .
     ```
 
 #### Method 02
