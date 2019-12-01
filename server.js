@@ -47,11 +47,11 @@ let args = {};
 args.resources = argv._;
 args.output = argv.output || path.join(__dirname, '/outputs');
 args.combine = argv.combine;
+args.base = argv.base;
 
 if (args.combine) {
 	args.title = argv.title;
 	args.host = argv.host;
-	args.base = argv.base;
 	args.version = argv[`swagger-version`];
 }
 
@@ -138,7 +138,7 @@ function generate(_resource) {
 		swagger: '2.0',
 		definitions: {},
 		host: 'hapi.fhir.org',
-		basePath: `/${_resource.toLowerCase()}-api`,
+		basePath: !args.combine ? `/${args.base}` || `/${_resource.toLowerCase()}-api` : `/${_resource.toLowerCase()}-api`,
 		info: {
 			title: `${_resource}FHIRAPI`,
 			version: fhirSchemaJSON['id'].substring(
@@ -312,7 +312,8 @@ function buildPaths(_key, _swagger) {
 	_swagger.paths[path] = {};
 
 	let post = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Create ${_key}`,
 		parameters: [
 			{
 				name: 'body',
@@ -327,7 +328,8 @@ function buildPaths(_key, _swagger) {
 	_swagger.paths[path]['post'] = post;
 
 	let get = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Get ${_key}`,
 		parameters: buildSearchParameters(_key),
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
@@ -351,14 +353,17 @@ function buildPaths(_key, _swagger) {
 	_swagger.paths[path]['parameters'] = {} = parameters;
 
 	get = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Retrieve ${_key} by ID`,
+        description: `Retrieve ${_key} by providing ID`,
 		parameters: [],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
 	_swagger.paths[path]['get'] = get;
 
 	let put = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Update ${_key}`,
 		parameters: [
 			{
 				name: 'body',
@@ -373,7 +378,8 @@ function buildPaths(_key, _swagger) {
 	_swagger.paths[path]['put'] = put;
 
 	let del = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Remove ${_key} by ID`,
 		parameters: [],
 		responses: getResponse(kw_OpOut, kw_OpOut, kw_OpOut),
 	};
@@ -400,7 +406,9 @@ function buildPaths(_key, _swagger) {
 	];
 
 	get = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Retrive ${_key} History`,
+        description: `Retrieve ${_key} History`,
 		parameters: historyParams,
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
@@ -414,7 +422,9 @@ function buildPaths(_key, _swagger) {
 	_swagger.paths[path] = {};
 
 	get = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Retrive ${_key} History by ID`,
+        description: `Retrieve ${_key} History by providing ID`,
 		parameters: [
 			{
 				name: 'id',
@@ -435,7 +445,9 @@ function buildPaths(_key, _swagger) {
 	_swagger.paths[path] = {};
 
 	get = {
-		tags: [_key],
+        tags: [_key],
+        summary: `Retrive ${_key} History by ID and Version`,
+        description: `Retrieve ${_key} History by providing ID and version`,
 		parameters: [
 			{
 				name: 'id',
@@ -525,7 +537,7 @@ function mergeSwagger() {
 
 	let host = args.host || 'hapi.fhir.org';
 	let schemas = ['http', 'https'];
-	let basePath = `/${args.base}` || '/';
+	let basePath = args.combine ? `/${args.base}` || `/` : '/';
 
 	let merged = swaggermerge.merge(swaggerStore, info, basePath, host, schemas);
 
