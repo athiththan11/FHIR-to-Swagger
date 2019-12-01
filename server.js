@@ -288,7 +288,20 @@ function traverseElements(_props, _tags, _swagger) {
 function buildPaths(_key, _swagger) {
 	// #region produces section
 
-	let produces = ['application/json', 'application/xml', 'application/fhir+xml', 'application/fhir+json'];
+	// let produces = ['application/json', 'application/xml', 'application/fhir+xml', 'application/fhir+json'];
+	let produces = [
+		'text/plain',
+		'application/json',
+		'application/fhir+json',
+		'application/json+fhir',
+		'text/json',
+		'application/xml',
+		'application/fhir+xml',
+		'application/xml+fhir',
+		'text/xml',
+		'text/xml+fhir',
+		'application/octet-stream',
+	];
 	_swagger.produces = produces;
 
 	// #endregion
