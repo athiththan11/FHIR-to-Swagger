@@ -138,8 +138,8 @@ function generate(_resource) {
 		swagger: '2.0',
 		definitions: {},
 		host: 'hapi.fhir.org',
-		basePath: !args.combine
-			? `/${args.base}` || `/${_resource.toLowerCase()}-api`
+		basePath: args.combine
+			? (args.base ? `/${args.base}` : `/`) || `/${_resource.toLowerCase()}-api`
 			: `/${_resource.toLowerCase()}-api`,
 		info: {
 			title: `${_resource}FHIRAPI`,
@@ -562,7 +562,7 @@ function mergeSwagger() {
 
 	let host = args.host || 'hapi.fhir.org';
 	let schemas = ['http', 'https'];
-	let basePath = args.combine ? `/${args.base}` || `/` : '/';
+	let basePath = args.combine ? (args.base ? `/${args.base}` : '/') || `/` : '/';
 
 	let merged = swaggermerge.merge(swaggerStore, info, basePath, host, schemas);
 
