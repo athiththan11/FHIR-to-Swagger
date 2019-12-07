@@ -2,7 +2,7 @@
 
 A command line tool to convert FHIR R4 (4.0 Schema) to Swagger definitions.
 
-[:construction: Work-In-Progress]
+[:construction: Work-In-Progress (Part-Timed) & Feature Requests are Welcomed]
 
 This tool uses the official specs and schemas provided by HL7 to generate swagger definitions. You can find the specs and schemas inside the `/schemas` directory.
 
