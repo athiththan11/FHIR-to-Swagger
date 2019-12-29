@@ -67,7 +67,7 @@ for example:
 5. Execute the folloing command to generate a combined swagger definition for `Coverage`, `Claim` & `ClaimResponse` resources with custom `version`, `basePath`, `host`.
 
     ```shell
-    fhir-to-swagger Coverage Claim ClaimResponse --combine --title Combined--FHIR-API --host hapi.fhir.org --base fhir --swagger-version 2.0.0 --output .
+    fhir-to-swagger Coverage Claim ClaimResponse --combine --title Combined--FHIR-API --host hapi.fhir.org --combined-base fhir --swagger-version 2.0.0 --output .
     ```
 
 #### Method 02
@@ -79,6 +79,16 @@ node server.js Coverage
 ```
 
 The above command will generate the swagger-definitions and saves it inside the `/outputs` folder of the tool
+
+## Commands
+
+### Base Path Configurations
+
+The `Fhir-to-Swagger` tool now supports the following three arguments to define `basePath` for individual Swagger definitions as well as for the combined swagger definitions
+
+* `--base`: The `basePath` of the generated Swagger Definition of a single Resource
+* `--default-base`: A default `basePath` will be used (ex: `'/coverage-api'`) for the generated Swagger Definitions
+* `--combined-base`: The `basePath` of the combined Swagger Definition
 
 ## Tool
 

@@ -25,6 +25,12 @@ let argv = require('yargs')
 	.alias('b', 'base')
 	.nargs('b', 1)
 	.describe('b', 'Base Path of the generated Swagger definition')
+	.alias('d', 'default-base')
+	.nargs('d', 0)
+	.describe('d', 'Default Base Path (ex: "/coverage-api") of the generated Swagger definition')
+	.alias('B', 'combined-base')
+	.nargs('B', 1)
+	.describe('B', 'Base Path of the generated Combined Swagger definition')
 	.alias('s', 'swagger-version')
 	.nargs('s', 1)
 	.describe('s', 'Version of the generated Swagger definition')
@@ -48,6 +54,8 @@ args.resources = argv._;
 args.output = argv.output || path.join(__dirname, '/outputs');
 args.combine = argv.combine;
 args.base = argv.base;
+args.combinedBase = argv['combined-base'];
+args.defaultBase = argv['default-base'];
 
 if (args.combine) {
 	args.title = argv.title;
@@ -138,9 +146,9 @@ function generate(_resource) {
 		swagger: '2.0',
 		definitions: {},
 		host: 'hapi.fhir.org',
-		basePath: args.combine
-			? (args.base ? `/${args.base}` : `/`) || `/${_resource.toLowerCase()}-api`
-			: `/${_resource.toLowerCase()}-api`,
+		basePath: args.base
+			? `/${args.base}`
+			: args.defaultBase ? `/${_resource.toLowerCase()}-api` : `/`,
 		info: {
 			title: `${_resource}FHIRAPI`,
 			version: fhirSchemaJSON['id'].substring(
@@ -562,7 +570,9 @@ function mergeSwagger() {
 
 	let host = args.host || 'hapi.fhir.org';
 	let schemas = ['http', 'https'];
-	let basePath = args.combine ? (args.base ? `/${args.base}` : '/') || `/` : '/';
+	let basePath = args.combine
+		? args.combinedBase ? `/${args.combinedBase}` : '/'
+		: '/';
 
 	let merged = swaggermerge.merge(swaggerStore, info, basePath, host, schemas);
 
