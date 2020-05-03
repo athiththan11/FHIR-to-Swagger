@@ -1,0 +1,551 @@
+{
+    "resourceType": "ImplementationGuide",
+    "id": "hl7.fhir.us.Davinci-drug-formulary-0.1.0",
+    "text": {
+        "status": "generated",
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><h2>US_Drug_Formulary</h2><p>The official URL for this implementation guide is: </p><pre>http://hl7.org/fhir/us/Davinci-drug-formulary/ImplementationGuide/hl7.fhir.us.Davinci-drug-formulary-0.1.0</pre></div>"
+    },
+    "url": "http://hl7.org/fhir/us/Davinci-drug-formulary/ImplementationGuide/hl7.fhir.us.Davinci-drug-formulary-0.1.0",
+    "version": "0.1.0",
+    "name": "US_Drug_Formulary",
+    "title": "US Drug Formulary",
+    "status": "draft",
+    "publisher": "HL7 Pharmacy WG",
+    "contact": [
+        {
+            "telecom": [
+                {
+                    "system": "url",
+                    "value": "http://www.hl7.org/Special/committees/medication/"
+                }
+            ]
+        }
+    ],
+    "packageId": "hl7.fhir.us.Davinci-drug-formulary",
+    "license": "CC0-1.0",
+    "fhirVersion": [
+        "4.0.0"
+    ],
+    "definition": {
+        "grouping": [
+            {
+                "name": "Profiles in this Implementation Guide",
+                "description": "Profiles in this Implementation Guide"
+            }
+        ],
+        "resource": [
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-CoveragePlan.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-CoveragePlan"
+                },
+                "name": "usdf-CoveragePlan",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-FormularyDrug.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-FormularyDrug"
+                },
+                "name": "usdf-FormularyDrug",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-CoInsuranceRate-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-CoInsuranceRate-extension"
+                },
+                "name": "usdf-CoInsuranceRate",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-CoinsuranceOption-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-CoinsuranceOption-extension"
+                },
+                "name": "usdf-CoinsuranceOption",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-CopayAmount-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-CopayAmount-extension"
+                },
+                "name": "usdf-CopayAmount",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-CopayOption-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-CopayOption-extension"
+                },
+                "name": "usdf-CopayOption",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-CostSharing-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-CostSharing-extension"
+                },
+                "name": "usdf-CostSharing",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-DrugAlternatives-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-DrugAlternatives-extension"
+                },
+                "name": "usdf-DrugAlternatives",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-DrugTierDefinition-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-DrugTierDefinition-extension"
+                },
+                "name": "usdf-DrugTierDefinition",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-DrugTierID-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-DrugTierID-extension"
+                },
+                "name": "usdf-DrugTierID",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-EmailPlanContact-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-EmailPlanContact-extension"
+                },
+                "name": "usdf-EmailPlanContact",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-FormularyURL-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-FormularyURL-extension"
+                },
+                "name": "usdf-FormularyURL",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-MailOrder-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-MailOrder-extension"
+                },
+                "name": "usdf-MailOrder",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-MarketingURL-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-MarketingURL-extension"
+                },
+                "name": "usdf-MarketingURL",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-Network-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-Network-extension"
+                },
+                "name": "usdf-Network",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-PharmacyType-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-PharmacyType-extension"
+                },
+                "name": "usdf-PharmacyType",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-PlanID-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-PlanID-extension"
+                },
+                "name": "usdf-PlanID",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-PlanIDType-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-PlanIDType-extension"
+                },
+                "name": "usdf-PlanIDType",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-PriorAuthorization-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-PriorAuthorization-extension"
+                },
+                "name": "usdf-PriorAuthorization",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-QuantityLimit-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-QuantityLimit-extension"
+                },
+                "name": "usdf-QuantityLimit",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-StepTherapyLimit-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-StepTherapyLimit-extension"
+                },
+                "name": "usdf-StepTherapyLimit",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "StructureDefinition-usdf-SummaryURL-extension.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "StructureDefinition/usdf-SummaryURL-extension"
+                },
+                "name": "usdf-SummaryURL",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "ValueSet-usdf-CoinsuranceOptionVS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "ValueSet/usdf-CoinsuranceOptionVS"
+                },
+                "name": "CoinsuranceOptionVS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "ValueSet-usdf-CopayOptionVS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "ValueSet/usdf-CopayOptionVS"
+                },
+                "name": "CopayOptionVS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "ValueSet-usdf-DrugTierVS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "ValueSet/usdf-DrugTierVS"
+                },
+                "name": "DrugTierVS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "ValueSet-usdf-PharmacyTypeVS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "ValueSet/usdf-PharmacyTypeVS"
+                },
+                "name": "PharmacyTypeVS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "CodeSystem-usdf-CoinsuranceOptionCS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "CodeSystem/usdf-CoinsuranceOptionCS"
+                },
+                "name": "CoinsuranceOptionCS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "CodeSystem-usdf-CopayOptionCS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "CodeSystem/usdf-CopayOptionCS"
+                },
+                "name": "CopayOptionCS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "CodeSystem-usdf-DrugTierCS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "CodeSystem/usdf-DrugTierCS"
+                },
+                "name": "DrugTierCS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "CodeSystem-usdf-PharmacyTypeCS.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "CodeSystem/usdf-PharmacyTypeCS"
+                },
+                "name": "PharmacyTypeCS",
+                "exampleBoolean": false
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "SearchParameter-DrugPlan.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "SearchParameter/DrugPlan"
+                },
+                "name": "DrugPlan",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "SearchParameter-DrugTier.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "SearchParameter/DrugTier"
+                },
+                "name": "DrugTier",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "List-covplanV1002.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "List/covplanV1002"
+                },
+                "name": "Example: covplanV1002",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "List-CoveragePlanV3001.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "List/CoveragePlanV3001"
+                },
+                "name": "Example: CoveragePlanV3001",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "List-CoveragePlanV3002.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "List/CoveragePlanV3002"
+                },
+                "name": "Example: CoveragePlanV3002",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "List-CoveragePlanV3004t.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "List/CoveragePlanV3004t"
+                },
+                "name": "Example: CoveragePlanV3004t",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "MedicationKnowledge-formularydrugV1002.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "MedicationKnowledge/formularydrugV1002"
+                },
+                "name": "Example: formularydrugV1002",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "MedicationKnowledge-FormularyDrugV3001.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "MedicationKnowledge/FormularyDrugV3001"
+                },
+                "name": "Example: FormularyDrugV3001",
+                "exampleBoolean": true
+            },
+            {
+                "extension": [
+                    {
+                        "url": "http://hl7.org/fhir/StructureDefinition/implementationguide-page",
+                        "valueUri": "MedicationKnowledge-cmsip9.html"
+                    }
+                ],
+                "reference": {
+                    "reference": "MedicationKnowledge/cmsip9"
+                },
+                "name": "Example: cmsip9",
+                "exampleBoolean": true
+            }
+        ],
+        "page": {
+            "nameUrl": "index.html",
+            "title": "US Drug Formulary",
+            "generation": "html"
+        }
+    }
+}

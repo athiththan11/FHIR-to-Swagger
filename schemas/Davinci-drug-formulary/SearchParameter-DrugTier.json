@@ -1,0 +1,23 @@
+{
+    "resourceType": "SearchParameter",
+    "id": "DrugTier",
+    "text": {
+        "status": "generated",
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative with Details</b></p><p><b>url</b>: <b>http://hl7.org/fhir/us/Davinci-drug-formulary/SearchParameter/DrugTier</b></p><p><b>name</b>: DrugTier</p><p><b>status</b>: ACTIVE</p><p><b>description</b>: Accesses the DrugTier ID of a FormularyDrug</p><p><b>code</b>: DrugTier</p><p><b>base</b>: MedicationKnowledge</p><p><b>type</b>: TOKEN</p><p><b>expression</b>: MedicationKnowledge.extension.where(url='http://hl7.org/fhir/us/Davinci-drug-formulary/StructureDefinition/usdf-DrugTierID-extension').value</p><p><b>comparator</b>: EQ</p></div>"
+    },
+    "url": "http://hl7.org/fhir/us/Davinci-drug-formulary/SearchParameter/DrugTier",
+    "version": "0.1.0",
+    "name": "DrugTier",
+    "status": "active",
+    "date": "2019-06-21T14:06:08-04:00",
+    "description": "Accesses the DrugTier ID of a FormularyDrug",
+    "code": "DrugTier",
+    "base": [
+        "MedicationKnowledge"
+    ],
+    "type": "token",
+    "expression": "MedicationKnowledge.extension.where(url='http://hl7.org/fhir/us/Davinci-drug-formulary/StructureDefinition/usdf-DrugTierID-extension').value",
+    "comparator": [
+        "eq"
+    ]
+}

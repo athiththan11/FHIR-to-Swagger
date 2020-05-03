@@ -7,9 +7,17 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Launch Server Program",
             "program": "${workspaceFolder}/server.js",
-            "args": ["Coverage"]
+            "args": ["Claim", "Coverage", "ClaimResponse"],
+            "runtimeVersion": "11.14.0"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Davinci Program",
+            "program": "${workspaceFolder}/davinci.js",
+            "runtimeVersion": "11.14.0",
         }
     ]
 }
