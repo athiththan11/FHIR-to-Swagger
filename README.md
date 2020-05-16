@@ -35,7 +35,7 @@ npm link
 and use the following command pattern to execute the tool
 
 ```shell
-fhir-to-swagger [Resource_Name] <--combine> --output <Output_Directory>
+fhir-to-swagger [Resource_Name] [--combine] --output [Output_Directory]
 ```
 
 for example:
