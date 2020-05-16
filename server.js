@@ -1,6 +1,5 @@
 let argv = require('yargs')
 	.usage('Usage: $0 [fhir-resources] --combine --output [output-directory]')
-	.command('Coverage --output .', 'Create a Swagger File for the Coverage Resource in the current directory')
 	.example(
 		'$0 Coverage ClaimResponse --output .',
 		'generates swagger definitions for Coverage and ClaimResponse resources and store in the output directory specified'
