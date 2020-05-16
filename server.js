@@ -524,19 +524,27 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 function buildSearchParameters(elem) {
 	let searchParamJSON = JSON.parse(fs.readFileSync(path.join(__dirname, '/schemas/search-parameters.json')));
 	let entries = JSONPath({ path: '$.entry.*', json: searchParamJSON });
+	let resourceProperties = JSONPath({ path: `${_jPath}${elem}.properties`, json: fhirSchemaJSON })[0];
 	let queryParams = [];
 
 	Object.keys(entries).forEach((k) => {
 		let entry = entries[k]['resource'];
 
 		// append search params of ref without any chaining
-		if (entry['base'].includes(elem) || entry['name'].startsWith('_'))
-			queryParams.push({
+		if (entry['base'].includes(elem) || entry['name'].startsWith('_')) {
+			let obj = {
 				name: entry['name'],
 				in: 'query',
 				type: 'string',
 				description: entry['description'],
-			});
+			};
+
+			if (resourceProperties[entry['name']] && resourceProperties[entry['name']]['enum']) {
+				obj.enum = resourceProperties[entry['name']]['enum'];
+			}
+
+			queryParams.push(obj);
+		}
 
 		// resource chaining implementation
 		if (entry['base'].includes[elem] && entry['type'] === 'reference') {
