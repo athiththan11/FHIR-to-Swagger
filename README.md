@@ -2,7 +2,7 @@
 
 A command line tool to convert FHIR R4 (4.0 Schema) to Swagger definitions.
 
-[:construction: Work-In-Progress (Part-Timed) & Feature Requests are Welcomed]
+[:construction: Work-In-Progress (Part-Timed) & Feature Requests are Welcomed | Check [#Under Development](#under-development)]
 
 This tool uses the official specs and schemas provided by HL7 to generate swagger definitions. You can find the specs and schemas inside the `/schemas` directory.
 
@@ -89,6 +89,20 @@ The `Fhir-to-Swagger` tool now supports the following three arguments to define 
 * `--base`: The `basePath` of the generated Swagger Definition of a single Resource
 * `--default-base`: A default `basePath` will be used (ex: `'/coverage-api'`) for the generated Swagger Definitions
 * `--combined-base`: The `basePath` of the combined Swagger Definition
+
+## Under Development
+
+* Defining Action Verbs when generating Swagger
+
+  ```sh
+  fhir-to-swagger Coverage --verbs put delete --output .
+  ```
+
+  ```sh
+  fhir-to-swagger Coverage Claim --combine --verbs coverage.get claim.put delete --output .
+  ```
+
+* Support for `Davinci US Drug Formulary` Schemas -> Refer to [Davinci Implmentation Branch](https://github.com/athiththan11/FHIR-to-Swagger/tree/davinci-implementation)
 
 ## Tool
 

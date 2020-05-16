@@ -1,6 +1,6 @@
 {
 	"name": "fhir-to-swagger",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "nodejs cli tool to convert fhir r4 specs into swagger definitions",
 	"main": "server.js",
 	"author": "athiththan11",
