@@ -1,6 +1,5 @@
 let argv = require('yargs')
 	.usage('Usage: $0 [fhir-resources] --combine --output [output-directory]')
-	.command('count', 'Count the lines in a file')
 	.example(
 		'$0 Coverage ClaimResponse --output .',
 		'generates swagger definitions for Coverage and ClaimResponse resources and store in the output directory specified'
@@ -12,6 +11,10 @@ let argv = require('yargs')
 	.example(
 		'$0 Coverage ClaimResponse --combine --title Combined--FHIR-API --host hapi.fhir.org --base fhir --swagger-version 2.0.0 --output .',
 		'generates a combined swagger definition for Coverage and ClaimResponse resources and store in the output directory specified with the passed argument set'
+	)
+	.example(
+		'$0 Coverage --verbs coverage.put delete --output .',
+		'generates swagger definition for Coverage resource with the Put and Delete Verb actions and stores in the output directory specified'
 	)
 	.alias('c', 'combine')
 	.nargs('c', 0)
@@ -37,6 +40,9 @@ let argv = require('yargs')
 	.alias('o', 'output')
 	.nargs('o', 1)
 	.describe('o', 'Output directory')
+	.alias('V', 'verbs')
+	.array('verbs')
+	.describe('V', 'Action verbs to be included')
 	.help('h')
 	.alias('h', 'help').argv;
 
@@ -45,6 +51,8 @@ const moment = require('moment-timezone');
 const path = require('path');
 const winston = require('winston');
 const swaggermerge = require('swagger-merge');
+const _ = require('lodash');
+const beautify = require('json-beautify');
 
 const { JSONPath } = require('jsonpath-plus');
 const { appendOperationOutcomeAndBundle, buildResourceChaining, getResponse, snakeToCamel } = require('./utils/utils');
@@ -56,6 +64,9 @@ args.combine = argv.combine;
 args.base = argv.base;
 args.combinedBase = argv['combined-base'];
 args.defaultBase = argv['default-base'];
+args.verbs = argv.verbs;
+
+let supportedVerbs = ['get', 'post', 'put', 'delete'];
 
 if (args.combine) {
 	args.title = argv.title;
@@ -126,9 +137,10 @@ let swaggerStore = [];
 /**
  * method to generate swagger definitions for the defined the FHIR resources
  *
- * @param {any} _resource FHIR resource keyword
+ * @param {string} _resource FHIR resource keyword
+ * @param {[string]} _verbs verb actions
  */
-function generate(_resource) {
+function generate(_resource, _verbs) {
 	logger.info('Starting to generate Swagger definition for FHIR resource = ' + _resource);
 	// extract resource model FHIR schema
 	let fhirResource = JSONPath({
@@ -146,9 +158,7 @@ function generate(_resource) {
 		swagger: '2.0',
 		definitions: {},
 		host: 'hapi.fhir.org',
-		basePath: args.base
-			? `/${args.base}`
-			: args.defaultBase ? `/${_resource.toLowerCase()}-api` : `/`,
+		basePath: args.base ? `/${args.base}` : args.defaultBase ? `/${_resource.toLowerCase()}-api` : `/`,
 		info: {
 			title: `${_resource}FHIRAPI`,
 			version: fhirSchemaJSON['id'].substring(
@@ -176,7 +186,7 @@ function generate(_resource) {
 		traverseElements(props, tags, swaggerJSON);
 	});
 
-	buildPaths(_resource, swaggerJSON);
+	buildPaths(_resource, swaggerJSON, _verbs);
 	buildSecurityDefinitions(swaggerJSON);
 
 	logger.info('Writing Swagger definition for FHIR resource = ' + _resource);
@@ -185,7 +195,7 @@ function generate(_resource) {
 	if (args.combine && args.resources.length > 1) swaggerStore.push(swaggerJSON);
 
 	// write output json file
-	fs.writeFileSync(`${args.output}/${_resource.toLowerCase()}-output.json`, JSON.stringify(swaggerJSON), (err) => {
+	fs.writeFileSync(`${args.output}/${_resource.toLowerCase()}-output.json`, beautify(swaggerJSON, null, 4), (err) => {
 		if (err) {
 			logger.error(err);
 		}
@@ -196,10 +206,10 @@ function generate(_resource) {
  * method to generate and populate resource definitions
  *
  * @param {any} node resource node
- * @param {any} key keyword
+ * @param {string} key keyword
  * @param {any} _props properties
- * @param {any} _tags tags
- * @param {any} _swagger swagger JSON
+ * @param {[string]} _tags tags
+ * @param {{}} _swagger swagger JSON
  */
 function buildResourceDef(node, key, _props, _tags, _swagger) {
 	// remove const elements from the resource-type and append type element with string,
@@ -273,7 +283,7 @@ function buildResourceDef(node, key, _props, _tags, _swagger) {
 /**
  * method to generate security definitions for swagger resources
  *
- * @param {any} _swagger swagger JSON
+ * @param {{}} _swagger swagger JSON
  */
 function buildSecurityDefinitions(_swagger) {
 	let securityDefinitions = {
@@ -281,12 +291,14 @@ function buildSecurityDefinitions(_swagger) {
 			name: 'Authorization',
 			in: 'header',
 			type: 'apiKey',
-			description: 'Authorization header using the Bearer scheme. Example :: \'Authorization: Bearer {token}\'',
+			description: "Authorization header using the Bearer scheme. Example :: 'Authorization: Bearer {token}'",
 		},
 	};
-	let security = [{
-		Bearer: [],
-	}];
+	let security = [
+		{
+			Bearer: [],
+		},
+	];
 
 	_swagger.securityDefinitions = securityDefinitions;
 	_swagger.security = security;
@@ -296,8 +308,8 @@ function buildSecurityDefinitions(_swagger) {
  * method to traverse through the elements
  *
  * @param {any} _props properties
- * @param {any} _tags tags
- * @param {any} _swagger swagger JSON
+ * @param {[string]} _tags tags
+ * @param {{}} _swagger swagger JSON
  */
 function traverseElements(_props, _tags, _swagger) {
 	_tags.forEach((e) => {
@@ -315,10 +327,11 @@ function traverseElements(_props, _tags, _swagger) {
 /**
  * method to build and generate resource paths
  *
- * @param {any} _key keywrod
- * @param {any} _swagger swagger JSON
+ * @param {string} _key keywrod
+ * @param {{}} _swagger swagger JSON
+ * @param {[string]} [_verbs=[]] action verbs
  */
-function buildPaths(_key, _swagger) {
+function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 	// #region produces section
 
 	// let produces = ['application/json', 'application/xml', 'application/fhir+xml', 'application/fhir+json'];
@@ -358,7 +371,7 @@ function buildPaths(_key, _swagger) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['post'] = post;
+	if (_verbs.includes('post')) _swagger.paths[path]['post'] = post;
 
 	let get = {
 		tags: [_key],
@@ -366,7 +379,7 @@ function buildPaths(_key, _swagger) {
 		parameters: buildSearchParameters(_key),
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['get'] = get;
+	if (_verbs.includes('get')) _swagger.paths[path]['get'] = get;
 
 	// #endregion
 
@@ -392,7 +405,7 @@ function buildPaths(_key, _swagger) {
 		parameters: [],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['get'] = get;
+	if (_verbs.includes('get')) _swagger.paths[path]['get'] = get;
 
 	let put = {
 		tags: [_key],
@@ -408,7 +421,7 @@ function buildPaths(_key, _swagger) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['put'] = put;
+	if (_verbs.includes('put')) _swagger.paths[path]['put'] = put;
 
 	let del = {
 		tags: [_key],
@@ -416,7 +429,7 @@ function buildPaths(_key, _swagger) {
 		parameters: [],
 		responses: getResponse(kw_OpOut, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['delete'] = del;
+	if (_verbs.includes('delete')) _swagger.paths[path]['delete'] = del;
 
 	// #endregion
 
@@ -445,7 +458,7 @@ function buildPaths(_key, _swagger) {
 		parameters: historyParams,
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['get'] = {} = get;
+	if (_verbs.includes('get')) _swagger.paths[path]['get'] = {} = get;
 
 	// #endregion
 
@@ -468,7 +481,7 @@ function buildPaths(_key, _swagger) {
 		].concat(historyParams),
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['get'] = {} = get;
+	if (_verbs.includes('get')) _swagger.paths[path]['get'] = {} = get;
 
 	// #endregion
 
@@ -497,7 +510,7 @@ function buildPaths(_key, _swagger) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	_swagger.paths[path]['get'] = {} = get;
+	if (_verbs.includes('get')) _swagger.paths[path]['get'] = {} = get;
 
 	// #endregion
 }
@@ -511,19 +524,27 @@ function buildPaths(_key, _swagger) {
 function buildSearchParameters(elem) {
 	let searchParamJSON = JSON.parse(fs.readFileSync(path.join(__dirname, '/schemas/search-parameters.json')));
 	let entries = JSONPath({ path: '$.entry.*', json: searchParamJSON });
+	let resourceProperties = JSONPath({ path: `${_jPath}${elem}.properties`, json: fhirSchemaJSON })[0];
 	let queryParams = [];
 
 	Object.keys(entries).forEach((k) => {
 		let entry = entries[k]['resource'];
 
 		// append search params of ref without any chaining
-		if (entry['base'].includes(elem) || entry['name'].startsWith('_'))
-			queryParams.push({
+		if (entry['base'].includes(elem) || entry['name'].startsWith('_')) {
+			let obj = {
 				name: entry['name'],
 				in: 'query',
 				type: 'string',
 				description: entry['description'],
-			});
+			};
+
+			if (resourceProperties[entry['name']] && resourceProperties[entry['name']]['enum']) {
+				obj.enum = resourceProperties[entry['name']]['enum'];
+			}
+
+			queryParams.push(obj);
+		}
 
 		// resource chaining implementation
 		if (entry['base'].includes[elem] && entry['type'] === 'reference') {
@@ -556,6 +577,31 @@ function buildSearchParameters(elem) {
 }
 
 /**
+ * method to extract the verb actions
+ *
+ * @param {string} key fhir resource keyword
+ * @param {[string]} verbs an array of verbs parsed through the command line
+ * @returns {[string]} an array of distinct verbs
+ */
+function extractVerbs(key, verbs) {
+	let extractedVerbs = [];
+	verbs.forEach((v) => {
+		if (
+			v.includes('.') &&
+			v.split('.')[0].toLowerCase() === key.toLowerCase() &&
+			_.includes(supportedVerbs, v.split('.')[1].toLowerCase())
+		) {
+			extractedVerbs.push(v.split('.')[1].toLowerCase());
+		}
+
+		if (!v.includes('.') && _.includes(supportedVerbs, v.toLowerCase())) {
+			extractedVerbs.push(v.toLowerCase());
+		}
+	});
+	return _.uniqWith(extractedVerbs, _.isEqual);
+}
+
+/**
  * method to merge multiple swagger definitions generated for
  * multiple FHIR resources
  */
@@ -570,15 +616,13 @@ function mergeSwagger() {
 
 	let host = args.host || 'hapi.fhir.org';
 	let schemas = ['http', 'https'];
-	let basePath = args.combine
-		? args.combinedBase ? `/${args.combinedBase}` : '/'
-		: '/';
+	let basePath = args.combine ? (args.combinedBase ? `/${args.combinedBase}` : '/') : '/';
 
 	let merged = swaggermerge.merge(swaggerStore, info, basePath, host, schemas);
 
 	logger.info(`Writing Swagger definition for the combined FHIR resources`);
 
-	fs.writeFileSync(`${args.output}/combined-swagger--output.json`, JSON.stringify(merged), (err) => {
+	fs.writeFileSync(`${args.output}/combined-swagger--output.json`, beautify(merged, null, 4), (err) => {
 		if (err) {
 			logger.error(err);
 		}
@@ -588,7 +632,10 @@ function mergeSwagger() {
 logger.info(`-------------------------- Starting FHIR to Swagger --------------------------`);
 
 args.resources.forEach((k) => {
-	generate(k);
+	if (args.verbs && args.verbs.length > 0) {
+		let verbs = extractVerbs(k, args.verbs);
+		generate(k, verbs.length > 0 ? verbs : undefined);
+	} else generate(k);
 });
 
 if (args.combine && args.resources.length > 1) mergeSwagger();

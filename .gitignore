@@ -93,4 +93,5 @@ typings/
 !.vscode/launch.json
 !.vscode/extensions.json
 
+# Mac OS
 .DS_Store

@@ -1,10 +1,10 @@
 {
 	"name": "fhir-to-swagger",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "nodejs cli tool to convert fhir r4 specs into swagger definitions",
 	"main": "server.js",
 	"author": "athiththan11",
-	"license": "ISC",
+	"license": "MIT",
 	"homepage": "https://github.com/athiththan11/FHIR-to-Swagger#readme",
 	"repository": {
 		"type": "git",
@@ -13,13 +13,18 @@
 	"bugs": {
 		"url": "https://github.com/athiththan11/FHIR-to-Swagger/issues"
 	},
+	"engines": {
+		"node": "11.14.0"
+	},
 	"dependencies": {
+		"json-beautify": "1.1.1",
 		"jsonpath-plus": "0.20.1",
+		"lodash": "4.17.15",
 		"log-timestamp": "0.3.0",
 		"moment-timezone": "0.5.27",
 		"swagger-merge": "0.4.0",
 		"winston": "3.2.1",
-		"yargs": "15.0.2"
+		"yargs": "15.3.1"
 	},
 	"bin": {
 		"fhir-to-swagger": "./bin/fhir-to-swagger"
