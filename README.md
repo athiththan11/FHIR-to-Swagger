@@ -104,6 +104,10 @@ The `Fhir-to-Swagger` tool now supports the following three arguments to define 
 
 * Support for `Davinci US Drug Formulary` Schemas -> Refer to [Davinci Implmentation Branch](https://github.com/athiththan11/FHIR-to-Swagger/tree/davinci-implementation)
 
+  ```sh
+  fhir-to-swagger--usdf usdf-FormularyDrug --output .
+  ```
+
 ## Tool
 
 ### Folder Structure

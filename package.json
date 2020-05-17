@@ -27,7 +27,8 @@
 		"yargs": "15.3.1"
 	},
 	"bin": {
-		"fhir-to-swagger": "./bin/fhir-to-swagger"
+		"fhir-to-swagger": "./bin/fhir-to-swagger",
+		"fhir-to-swagger--usdf": "./bin/fhir-to-swagger--usdf"
 	},
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1"
