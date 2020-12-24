@@ -70,6 +70,18 @@ for example:
     fhir-to-swagger Coverage Claim ClaimResponse --combine --title Combined--FHIR-API --host hapi.fhir.org --combined-base fhir --swagger-version 2.0.0 --output .
     ```
 
+6. Execute the following command to generate swagger definition for `Coverage` resource with only `DELETE` operations
+
+   ```sh
+   fhir-to-swagger Coverage --verbs put delete --output .
+   ```
+
+7. Execute the following command to generate a combined swagger definition for `Coverage` and `Claim` resources with `GET`, `PUT` and `DELETE` operations
+
+   ```sh
+   fhir-to-swagger Coverage Claim --combine --verbs coverage.get claim.put delete --output .
+   ```
+
 #### Method 02
 
 Execute the following command from the root directory
@@ -91,16 +103,6 @@ The `Fhir-to-Swagger` tool now supports the following three arguments to define 
 * `--combined-base`: The `basePath` of the combined Swagger Definition
 
 ## Under Development
-
-* Defining Action Verbs when generating Swagger
-
-  ```sh
-  fhir-to-swagger Coverage --verbs put delete --output .
-  ```
-
-  ```sh
-  fhir-to-swagger Coverage Claim --combine --verbs coverage.get claim.put delete --output .
-  ```
 
 * Support for `Davinci US Drug Formulary` Schemas -> Refer to [Davinci Implmentation Branch](https://github.com/athiththan11/FHIR-to-Swagger/tree/davinci-implementation)
 

@@ -355,7 +355,6 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 	// #region / path
 
 	let path = `/${_key}`;
-	_swagger.paths[path] = {};
 
 	let post = {
 		tags: [_key],
@@ -371,7 +370,10 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('post')) _swagger.paths[path]['post'] = post;
+	if (_verbs.includes('post')) {
+		_swagger.paths[path] = {};
+		_swagger.paths[path]['post'] = post;
+	}
 
 	let get = {
 		tags: [_key],
@@ -379,14 +381,18 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		parameters: buildSearchParameters(_key),
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('get')) _swagger.paths[path]['get'] = get;
+	if (_verbs.includes('get')) {
+		if (!_swagger.paths[path]) {
+			_swagger.paths[path] = {};
+		}
+		_swagger.paths[path]['get'] = get;
+	}
 
 	// #endregion
 
 	// #region /Resource/{id} path
 
 	path = `/${_key}/{id}`;
-	_swagger.paths[path] = {};
 
 	let parameters = [
 		{
@@ -396,7 +402,6 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 			required: true,
 		},
 	];
-	_swagger.paths[path]['parameters'] = {} = parameters;
 
 	get = {
 		tags: [_key],
@@ -405,7 +410,13 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		parameters: [],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('get')) _swagger.paths[path]['get'] = get;
+	if (_verbs.includes('get')) {
+		if (!_swagger.paths[path]) {
+			_swagger.paths[path] = {};
+			_swagger.paths[path]['parameters'] = {} = parameters;
+		}
+		_swagger.paths[path]['get'] = get;
+	}
 
 	let put = {
 		tags: [_key],
@@ -421,7 +432,13 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('put')) _swagger.paths[path]['put'] = put;
+	if (_verbs.includes('put')) {
+		if (!_swagger.paths[path]) {
+			_swagger.paths[path] = {};
+			_swagger.paths[path]['parameters'] = {} = parameters;
+		}
+		_swagger.paths[path]['put'] = put;
+	}
 
 	let del = {
 		tags: [_key],
@@ -429,14 +446,19 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		parameters: [],
 		responses: getResponse(kw_OpOut, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('delete')) _swagger.paths[path]['delete'] = del;
+	if (_verbs.includes('delete')) {
+		if (!_swagger.paths[path]) {
+			_swagger.paths[path] = {};
+			_swagger.paths[path]['parameters'] = {} = parameters;
+		}
+		_swagger.paths[path]['delete'] = del;
+	}
 
 	// #endregion
 
 	// #region /Resource/_history path
 
 	path = `/${_key}/_history`;
-	_swagger.paths[path] = {};
 
 	let historyParams = [
 		{
@@ -458,14 +480,18 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		parameters: historyParams,
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('get')) _swagger.paths[path]['get'] = {} = get;
+	if (_verbs.includes('get')) {
+		if (!_swagger.paths[path]) {
+			_swagger.paths[path] = {};
+		}
+		_swagger.paths[path]['get'] = {} = get;
+	}
 
 	// #endregion
 
 	// #region /Resource/{id}/_history path
 
 	path = `/${_key}/{id}/_history`;
-	_swagger.paths[path] = {};
 
 	get = {
 		tags: [_key],
@@ -481,14 +507,18 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		].concat(historyParams),
 		responses: getResponse(kw_Bundle, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('get')) _swagger.paths[path]['get'] = {} = get;
+	if (_verbs.includes('get')) {
+		if (!_swagger.paths[path]) {
+			_swagger.paths[path] = {};
+		}
+		_swagger.paths[path]['get'] = {} = get;
+	}
 
 	// #endregion
 
 	// #region /Resource/{id}/_history/{vid} path
 
 	path = `/${_key}/{id}/_history/{vid}`;
-	_swagger.paths[path] = {};
 
 	get = {
 		tags: [_key],
@@ -510,7 +540,12 @@ function buildPaths(_key, _swagger, _verbs = supportedVerbs) {
 		],
 		responses: getResponse(_key, kw_OpOut, kw_OpOut),
 	};
-	if (_verbs.includes('get')) _swagger.paths[path]['get'] = {} = get;
+	if (_verbs.includes('get')) {
+		if (!_swagger.paths[path]) {
+			_swagger.paths[path] = {};
+		}
+		_swagger.paths[path]['get'] = {} = get;
+	}
 
 	// #endregion
 }
