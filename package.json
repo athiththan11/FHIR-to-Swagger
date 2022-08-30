@@ -21,7 +21,7 @@
 		"jsonpath-plus": "0.20.1",
 		"lodash": "4.17.21",
 		"log-timestamp": "0.3.0",
-		"moment-timezone": "0.5.27",
+		"moment-timezone": "0.5.35",
 		"swagger-merge": "0.4.0",
 		"winston": "3.2.1",
 		"yargs": "15.3.1"
